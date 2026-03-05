@@ -2,6 +2,8 @@ import { Config } from "@/types";
 import ConfiguracionManager from "@/components/admin/ConfiguracionManager";
 import { getConfig } from '@/lib/airtable';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ConfiguracionPage() {
     const config = await getConfig().catch(() => ({
         negocio_nombre: 'Padel Club',

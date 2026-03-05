@@ -4,6 +4,8 @@ import ReservasHoy from "@/components/admin/ReservasHoy";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
 import { getReservas, getCanchas } from '@/lib/airtable';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboard() {
     const [reservas, canchas] = await Promise.all([
         getReservas().catch(() => []),

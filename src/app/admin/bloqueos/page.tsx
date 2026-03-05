@@ -2,6 +2,8 @@ import { Bloqueo, Cancha } from "@/types";
 import BloqueosManager from "@/components/admin/BloqueosManager";
 import { getBloqueos, getCanchas } from '@/lib/airtable';
 
+export const dynamic = 'force-dynamic';
+
 export default async function BloqueosPage() {
     const [bloqueos, canchas] = await Promise.all([
         getBloqueos().catch(() => []),

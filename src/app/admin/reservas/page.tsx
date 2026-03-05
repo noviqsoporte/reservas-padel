@@ -2,6 +2,8 @@ import { Cancha, Reserva } from "@/types";
 import ReservasManager from "@/components/admin/ReservasManager";
 import { getReservas, getCanchas } from '@/lib/airtable';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ReservasPage() {
     const [reservas, canchas] = await Promise.all([
         getReservas().catch(() => []),

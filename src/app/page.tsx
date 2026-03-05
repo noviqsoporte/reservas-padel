@@ -7,6 +7,8 @@ import Footer from "@/components/Footer";
 import { Cancha, Config } from "@/types";
 import { getConfig, getCanchas } from '@/lib/airtable';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const [config, canchas] = await Promise.all([
     getConfig().catch(() => ({
