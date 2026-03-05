@@ -82,7 +82,7 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
             } else {
                 toast.error("Error al cancelar la reserva");
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error("Error de conexión");
         } finally {
             setLoading(false);
@@ -102,7 +102,7 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                 r.id === id ? { ...r, estado: nuevoEstado as Reserva['estado'] } : r
             ));
             toast.success(`Estado actualizado a ${nuevoEstado}`);
-        } catch {
+        } catch (_error) {
             toast.error("Error al actualizar el estado");
         }
     };
@@ -272,12 +272,12 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                                     let parsedDateLabel = reserva.fecha;
                                     try {
                                         parsedDateLabel = format(new Date(reserva.fecha + 'T12:00:00'), "E d MMM", { locale: es });
-                                    } catch (e) { }
+                                    } catch (_e) { }
 
                                     let parsedDateYear = "";
                                     try {
                                         parsedDateYear = format(new Date(reserva.fecha + 'T12:00:00'), "yyyy");
-                                    } catch (e) { }
+                                    } catch (_e) { }
 
                                     return (
                                         <tr key={reserva.id} className="hover:bg-[#f8f9fa] transition-colors">

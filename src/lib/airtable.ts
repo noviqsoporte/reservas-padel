@@ -15,14 +15,14 @@ const configTable = base(process.env.AIRTABLE_TABLE_CONFIG as string);
 export async function getCanchas(): Promise<Cancha[]> {
     try {
         const records = await canchasTable.select().all();
-        return records.map(record => ({
+        return records.map((record: { id: string; fields: Record<string, unknown> }) => ({
             id: record.id,
-            nombre: record.get('Nombre') as string,
-            descripcion: record.get('Descripcion') as string,
-            foto_url: record.get('Foto_URL') as string,
-            activa: record.get('Activa') as boolean,
-            precio: record.get('Precio') as number,
-            color: record.get('Color') as string,
+            nombre: record.fields['Nombre'] as string,
+            descripcion: record.fields['Descripcion'] as string,
+            foto_url: record.fields['Foto_URL'] as string,
+            activa: record.fields['Activa'] as boolean,
+            precio: record.fields['Precio'] as number,
+            color: record.fields['Color'] as string,
         }));
     } catch (error) {
         console.error('Error fetching canchas:', error);
@@ -113,24 +113,24 @@ export async function actualizarCancha(id: string, data: Partial<Cancha>): Promi
 
 export async function getReservas(fecha?: string): Promise<Reserva[]> {
     try {
-        let queryOptions: any = {};
+        const queryOptions: { filterByFormula?: string; sort?: Array<{ field: string; direction: "asc" | "desc" }> } = {};
         if (fecha) {
             queryOptions.filterByFormula = `Fecha = '${fecha}'`;
         }
         const records = await reservasTable.select(queryOptions).all();
-        return records.map(record => {
-            const canchaField = record.get('Cancha') as string[] | undefined;
+        return records.map((record: { id: string; fields: Record<string, unknown> }) => {
+            const canchaField = record.fields['Cancha'] as string[] | undefined;
             return {
                 id: record.id,
                 cancha_id: canchaField && canchaField.length > 0 ? canchaField[0] : '',
-                fecha: record.get('Fecha') as string,
-                hora_inicio: record.get('Hora_Inicio') as string,
-                hora_fin: record.get('Hora_Fin') as string,
-                nombre_cliente: record.get('Nombre_Cliente') as string,
-                telefono: record.get('Telefono') as string,
-                email: record.get('Email') as string,
-                estado: record.get('Estado') as Reserva['estado'],
-                notas: record.get('Notas') as string | undefined,
+                fecha: record.fields['Fecha'] as string,
+                hora_inicio: record.fields['Hora_Inicio'] as string,
+                hora_fin: record.fields['Hora_Fin'] as string,
+                nombre_cliente: record.fields['Nombre_Cliente'] as string,
+                telefono: record.fields['Telefono'] as string,
+                email: record.fields['Email'] as string,
+                estado: record.fields['Estado'] as Reserva['estado'],
+                notas: record.fields['Notas'] as string | undefined,
             };
         });
     } catch (error) {
@@ -236,14 +236,14 @@ export async function cancelarReserva(id: string): Promise<void> {
 export async function getBloqueos(): Promise<Bloqueo[]> {
     try {
         const records = await bloqueosTable.select().all();
-        return records.map(record => {
-            const canchaField = record.get('Cancha') as string[] | undefined;
+        return records.map((record: { id: string; fields: Record<string, unknown> }) => {
+            const canchaField = record.fields['Cancha'] as string[] | undefined;
             return {
                 id: record.id,
-                motivo: record.get('Motivo') as string,
+                motivo: record.fields['Motivo'] as string,
                 cancha_id: canchaField && canchaField.length > 0 ? canchaField[0] : '',
-                fecha_inicio: record.get('Fecha_Inicio') as string,
-                fecha_fin: record.get('Fecha_Fin') as string,
+                fecha_inicio: record.fields['Fecha_Inicio'] as string,
+                fecha_fin: record.fields['Fecha_Fin'] as string,
             };
         });
     } catch (error) {

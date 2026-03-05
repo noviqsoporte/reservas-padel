@@ -67,7 +67,7 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
             } else {
                 toast.error("Hubo un error al guardar algunas configuraciones");
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error("Error de conexión");
         } finally {
             setLoading(false);
@@ -184,8 +184,8 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
                 onClick={handleGuardar}
                 disabled={loading}
                 className={`w-full font-semibold px-8 py-3 rounded-xl transition-colors mt-6 ${guardado
-                        ? 'bg-green-600 text-white cursor-default'
-                        : 'bg-[#1e3a5f] text-white hover:bg-[#2563eb] ' + (loading ? 'opacity-70 cursor-not-allowed' : '')
+                    ? 'bg-green-600 text-white cursor-default'
+                    : 'bg-[#1e3a5f] text-white hover:bg-[#2563eb] ' + (loading ? 'opacity-70 cursor-not-allowed' : '')
                     }`}
             >
                 {guardado ? '✓ Cambios guardados' : loading ? 'Guardando...' : 'Guardar configuración'}

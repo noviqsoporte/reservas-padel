@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ error: "Contraseña incorrecta" }, { status: 401 });
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json({ error: "Error de servidor" }, { status: 500 });
     }
 }

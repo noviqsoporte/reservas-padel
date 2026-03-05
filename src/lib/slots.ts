@@ -47,7 +47,7 @@ export function generarSlots(
                         if (!isNaN(d.getTime())) {
                             return format(d, 'HH:mm');
                         }
-                    } catch (e) { }
+                    } catch (_e) { }
                     // Fallback simple si falla Date()
                     return fechaISO.length >= 16 ? fechaISO.substring(11, 16) : null;
                 };

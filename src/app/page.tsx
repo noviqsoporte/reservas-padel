@@ -49,7 +49,7 @@ export default async function Home() {
 
   const nombre = config.negocio_nombre;
   // Usamos as any temporalmente si "descripcion" viene en el payload pero no en el type Config
-  const descripcion = (config as any).descripcion || "Las mejores canchas de la ciudad";
+  const descripcion = (config as unknown as { descripcion?: string }).descripcion || "Las mejores canchas de la ciudad";
 
   return (
     <div className="min-h-screen bg-white">

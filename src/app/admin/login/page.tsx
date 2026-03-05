@@ -29,7 +29,7 @@ export default function AdminLogin() {
                 setError(true);
                 setLoading(false);
             }
-        } catch (err) {
+        } catch (_err) {
             setError(true);
             setLoading(false);
         }

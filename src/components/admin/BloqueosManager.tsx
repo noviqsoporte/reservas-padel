@@ -83,7 +83,7 @@ export default function BloqueosManager({ bloqueos: bloqueosIniciales, canchas }
                 const errorData = await res.json();
                 toast.error(errorData.error || "Error al crear bloqueo");
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error("Error de conexión");
         } finally {
             setLoading(false);
@@ -106,7 +106,7 @@ export default function BloqueosManager({ bloqueos: bloqueosIniciales, canchas }
             } else {
                 toast.error("Error al eliminar el bloqueo");
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error("Error de conexión");
         }
     };
@@ -119,7 +119,7 @@ export default function BloqueosManager({ bloqueos: bloqueosIniciales, canchas }
     const formatearFecha = (fecha: string) => {
         try {
             return format(new Date(fecha + 'T12:00:00'), "d MMM yyyy", { locale: es });
-        } catch (e) {
+        } catch (_e) {
             return fecha;
         }
     };
@@ -131,7 +131,7 @@ export default function BloqueosManager({ bloqueos: bloqueosIniciales, canchas }
             // differenceInDays returns difference in midnight-to-midnight periods, so add 1 to make it inclusive (e.g. 15 to 15 is 1 day)
             const diff = differenceInDays(dFin, dInicio) + 1;
             return diff;
-        } catch (e) {
+        } catch (_e) {
             return 1;
         }
     };

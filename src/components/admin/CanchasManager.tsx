@@ -115,7 +115,7 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
             setSubiendoFoto(true);
             try {
                 fotoUrlFinal = await uploadToCloudinary(archivoFoto);
-            } catch (error) {
+            } catch (_error) {
                 toast.error("Error al subir la imagen");
                 setSubiendoFoto(false);
                 return;
@@ -166,7 +166,7 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
                     toast.error("Error al actualizar la cancha");
                 }
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error("Error de conexión");
         } finally {
             setLoading(false);
@@ -188,7 +188,7 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
             } else {
                 toast.error("Error al cambiar estado");
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error("Error de conexión");
         }
     };
@@ -230,6 +230,7 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
                             {/* IMAGEN */}
                             <div className="h-48 relative">
                                 {cancha.foto_url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img src={cancha.foto_url} alt={cancha.nombre} className="object-cover w-full h-full" />
                                 ) : (
                                     <div className="bg-[#f1f5f9] flex items-center justify-center w-full h-full">
@@ -282,8 +283,8 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
                                     <button
                                         onClick={() => handleToggleActiva(cancha)}
                                         className={`flex-1 text-sm font-medium rounded-lg py-2 border transition-colors ${cancha.activa
-                                                ? "bg-red-50 text-red-500 border-red-200 hover:bg-red-100"
-                                                : "bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
+                                            ? "bg-red-50 text-red-500 border-red-200 hover:bg-red-100"
+                                            : "bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
                                             }`}
                                     >
                                         {cancha.activa ? "Desactivar" : "Activar"}
@@ -390,6 +391,7 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
 
                                 {canchaEditando?.foto_url && !previewFoto && (
                                     <div className="flex items-center mb-3 bg-[#f8f9fa] p-2 rounded-xl border border-[#e2e8f0]">
+                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={canchaEditando.foto_url} alt="Actual" className="w-16 h-16 rounded-lg object-cover mr-3 border border-[#e2e8f0]" />
                                         <div className="flex-grow">
                                             <div className="text-sm font-medium text-[#0f172a]">Foto actual</div>
@@ -412,6 +414,7 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
 
                                     {previewFoto ? (
                                         <div className="absolute inset-0 rounded-xl overflow-hidden group">
+                                            // eslint-disable-next-line @next/next/no-img-element
                                             <img src={previewFoto} alt="Preview" className="w-full h-full object-cover" />
                                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <span className="bg-white text-[#0f172a] text-sm font-medium px-4 py-2 rounded-lg">Cambiar foto</span>
