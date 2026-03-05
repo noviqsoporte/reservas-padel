@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getReservas, crearReserva } from '@/lib/airtable';
 import { Reserva } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);

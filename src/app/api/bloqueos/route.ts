@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getBloqueos, crearBloqueo } from '@/lib/airtable';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const bloqueos = await getBloqueos();

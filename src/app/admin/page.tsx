@@ -2,35 +2,13 @@ import { Cancha, Reserva } from "@/types";
 import DashboardKPIs from "@/components/admin/DashboardKPIs";
 import ReservasHoy from "@/components/admin/ReservasHoy";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
-
-async function getReservas() {
-    try {
-        const baseUrl = process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
-        const res = await fetch(`${baseUrl}/api/reservas`, { cache: 'no-store' });
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data.reservas as Reserva[];
-    } catch (error) {
-        console.error("Error fetching reservas:", error);
-        return [];
-    }
-}
-
-async function getCanchas() {
-    try {
-        const baseUrl = process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
-        const res = await fetch(`${baseUrl}/api/canchas`, { cache: 'no-store' });
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data.canchas as Cancha[];
-    } catch (error) {
-        console.error("Error fetching canchas:", error);
-        return [];
-    }
-}
+import { getReservas, getCanchas } from '@/lib/airtable';
 
 export default async function AdminDashboard() {
-    const [reservas, canchas] = await Promise.all([getReservas(), getCanchas()]);
+    const [reservas, canchas] = await Promise.all([
+        getReservas().catch(() => []),
+        getCanchas().catch(() => [])
+    ]);
 
     const hoy = new Date().toISOString().split('T')[0];
     const currentMonth = hoy.substring(0, 7);

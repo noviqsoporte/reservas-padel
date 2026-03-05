@@ -1,39 +1,17 @@
 import { Config } from "@/types";
 import ConfiguracionManager from "@/components/admin/ConfiguracionManager";
-
-async function getConfig() {
-    try {
-        const baseUrl = process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000';
-        const res = await fetch(`${baseUrl}/api/config`, { cache: 'no-store' });
-        if (!res.ok) {
-            return {
-                negocio_nombre: 'Mi Club de Pádel',
-                horario_apertura: '07:00',
-                horario_cierre: '23:00',
-                dias_operacion: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
-                direccion: '',
-                telefono: '',
-                instagram: ''
-            };
-        }
-        const data = await res.json();
-        return data.config as Config;
-    } catch (error) {
-        console.error("Error fetching config:", error);
-        return {
-            negocio_nombre: 'Mi Club de Pádel',
-            horario_apertura: '07:00',
-            horario_cierre: '23:00',
-            dias_operacion: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
-            direccion: '',
-            telefono: '',
-            instagram: ''
-        };
-    }
-}
+import { getConfig } from '@/lib/airtable';
 
 export default async function ConfiguracionPage() {
-    const config = await getConfig();
+    const config = await getConfig().catch(() => ({
+        negocio_nombre: 'Padel Club',
+        horario_apertura: '07:00',
+        horario_cierre: '23:00',
+        dias_operacion: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+        direccion: 'Dirección del club',
+        telefono: '+52 55 0000 0000',
+        instagram: '@padelclub'
+    } as unknown as Config));
 
     return (
         <div>

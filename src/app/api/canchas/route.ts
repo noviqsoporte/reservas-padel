@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getCanchas, crearCancha } from '@/lib/airtable';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const canchas = await getCanchas();
