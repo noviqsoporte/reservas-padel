@@ -12,7 +12,9 @@ export default async function AdminDashboard() {
         getCanchas().catch(() => [])
     ]);
 
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Mexico_City'
+    }).format(new Date());
     const currentMonth = hoy.substring(0, 7);
 
     const reservasHoy = reservas.filter(r => r.fecha === hoy && r.estado !== 'Cancelada');
