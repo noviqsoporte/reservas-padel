@@ -4,7 +4,9 @@ import CanchasSection from "@/components/CanchasSection";
 import ComoFuncionaSection from "@/components/ComoFuncionaSection";
 import ReservaSection from "@/components/ReservaSection";
 import Footer from "@/components/Footer";
-import { Cancha, Config } from "@/types";
+import IntroAnimation from "@/components/IntroAnimation";
+import FloatingContactButtons from "@/components/FloatingContactButtons";
+import { Config } from "@/types";
 import { getConfig, getCanchas } from '@/lib/airtable';
 
 export const dynamic = 'force-dynamic';
@@ -12,38 +14,39 @@ export const dynamic = 'force-dynamic';
 export default async function Home() {
   const [config, canchas] = await Promise.all([
     getConfig().catch(() => ({
-      negocio_nombre: 'Padel Club',
-      horario_apertura: '07:00',
-      horario_cierre: '23:00',
+      negocio_nombre: 'Lood',
+      horario_apertura: '07:00 a.m.',
+      horario_cierre: '11:00 p.m.',
       dias_operacion: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
       direccion: 'Dirección del club',
       telefono: '+52 55 0000 0000',
-      instagram: '@padelclub'
+      instagram: '@lood'
     } as unknown as Config)),
     getCanchas().catch(() => [])
   ]);
 
-  const nombre = config.negocio_nombre;
-  // Usamos as any temporalmente si "descripcion" viene en el payload pero no en el type Config
+  const nombre = config.negocio_nombre || 'Lood';
   const descripcion = (config as unknown as { descripcion?: string }).descripcion || "Las mejores canchas de la ciudad";
+  const canchasActivas = canchas.filter(c => c.activa).length;
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
+    <div className="min-h-screen bg-white page-public">
+      <IntroAnimation nombre={nombre} />
+      <Navbar nombre={nombre} />
       <HeroSection
         nombre={nombre}
         descripcion={descripcion}
         horarioApertura={config.horario_apertura}
         horarioCierre={config.horario_cierre}
+        canchasActivas={canchasActivas}
       />
 
       <CanchasSection canchas={canchas} />
       <ComoFuncionaSection />
       <ReservaSection />
 
-      {/* secciones siguientes se agregarán en próximos prompts */}
       <Footer config={config} />
+      <FloatingContactButtons telefono={config.telefono} instagram={config.instagram} />
     </div>
   );
 }
-

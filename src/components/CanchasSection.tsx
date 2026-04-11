@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import { Cancha } from "@/types";
 import BotonReservarCancha from "./BotonReservarCancha";
 
@@ -5,13 +8,29 @@ interface CanchasSectionProps {
     canchas: Cancha[];
 }
 
+const gridVariants = {
+    hidden: {},
+    show: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
+};
+
+const cardVariants = {
+    hidden: { opacity: 0, y: 24 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
+};
+
 export default function CanchasSection({ canchas }: CanchasSectionProps) {
     return (
         <section id="canchas" className="py-24 px-4 bg-[#f8f9fa]">
             <div className="max-w-6xl mx-auto">
 
                 {/* Header de sección */}
-                <div className="text-center mb-16">
+                <motion.div
+                    className="text-center mb-16"
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-60px" }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="text-[#1e3a5f] text-xs font-semibold tracking-widest uppercase mb-3">
                         Nuestras Canchas
                     </div>
@@ -21,15 +40,24 @@ export default function CanchasSection({ canchas }: CanchasSectionProps) {
                     <p className="text-[#64748b] text-lg mt-3">
                         Canchas de primer nivel disponibles para ti
                     </p>
-                </div>
+                </motion.div>
 
                 {/* Grid de cards */}
                 {canchas.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <motion.div
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                        variants={gridVariants}
+                        initial="hidden"
+                        whileInView="show"
+                        viewport={{ once: true, margin: "-40px" }}
+                    >
                         {canchas.map((cancha) => (
-                            <div
+                            <motion.div
                                 key={cancha.id}
-                                className="bg-white rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"
+                                variants={cardVariants}
+                                whileHover={{ y: -4, boxShadow: "0 12px 32px rgba(0,0,0,0.10)" }}
+                                transition={{ duration: 0.2 }}
+                                className="bg-white rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-sm cursor-default"
                             >
                                 {/* Área superior / Imagen */}
                                 <div className="h-52 w-full relative">
@@ -50,7 +78,6 @@ export default function CanchasSection({ canchas }: CanchasSectionProps) {
 
                                 {/* Contenido Card */}
                                 <div className="p-6">
-                                    {/* Fila superior */}
                                     <div className="flex justify-between items-start">
                                         <h3 className="text-lg font-bold text-[#0f172a]">{cancha.nombre}</h3>
                                         {cancha.activa ? (
@@ -64,14 +91,12 @@ export default function CanchasSection({ canchas }: CanchasSectionProps) {
                                         )}
                                     </div>
 
-                                    {/* Descripción */}
                                     <p className="text-[#64748b] text-sm mt-2 leading-relaxed line-clamp-2">
                                         {cancha.descripcion}
                                     </p>
 
-                                    <div className="border-t border-[#e2e8f0] my-4"></div>
+                                    <div className="border-t border-[#e2e8f0] my-4" />
 
-                                    {/* Fila precio + botón */}
                                     <div className="flex justify-between items-center">
                                         <div>
                                             {cancha.precio > 0 ? (
@@ -86,9 +111,9 @@ export default function CanchasSection({ canchas }: CanchasSectionProps) {
                                         <BotonReservarCancha canchaId={cancha.id} activa={cancha.activa} />
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 ) : (
                     <div className="text-center py-20">
                         <div className="text-6xl mb-4 opacity-30">🎾</div>

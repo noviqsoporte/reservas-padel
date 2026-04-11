@@ -115,7 +115,7 @@ export async function getReservas(fecha?: string): Promise<Reserva[]> {
     try {
         const queryOptions: { filterByFormula?: string; sort?: Array<{ field: string; direction: "asc" | "desc" }> } = {};
         if (fecha) {
-            queryOptions.filterByFormula = `Fecha = '${fecha}'`;
+            queryOptions.filterByFormula = `IS_SAME({Fecha}, '${fecha}', 'day')`;
         }
         const records = await reservasTable.select(queryOptions).all();
         return records.map((record: { id: string; fields: Record<string, unknown> }) => {
@@ -290,25 +290,31 @@ export async function eliminarBloqueo(id: string): Promise<void> {
 
 export async function getConfig(): Promise<Config> {
     try {
-        const records = await configTable.select().all();
-        const configObj: any = {};
+        const records = await configTable.select().firstPage();
 
-        records.forEach(record => {
-            const clave = record.get('Clave') as string;
-            const valor = record.get('Valor') as string;
-            if (clave && valor) {
-                configObj[clave] = valor;
-            }
-        });
+        if (records.length === 0) {
+            return {
+                negocio_nombre: '',
+                horario_apertura: '',
+                horario_cierre: '',
+                dias_operacion: [],
+                direccion: '',
+                telefono: '',
+                instagram: '',
+            };
+        }
+
+        const record = records[0];
+        const diasStr = (record.get('dias_operacion') as string) || '';
 
         return {
-            negocio_nombre: configObj['negocio_nombre'] || '',
-            horario_apertura: configObj['horario_apertura'] || '',
-            horario_cierre: configObj['horario_cierre'] || '',
-            dias_operacion: configObj['dias_operacion'] ? configObj['dias_operacion'].split(',').map((d: string) => d.trim()) : [],
-            direccion: configObj['direccion'] || '',
-            telefono: configObj['telefono'] || '',
-            instagram: configObj['instagram'] || '',
+            negocio_nombre: (record.get('negocio_nombre') as string) || '',
+            horario_apertura: (record.get('horario_apertura') as string) || '',
+            horario_cierre: (record.get('horario_cierre') as string) || '',
+            dias_operacion: diasStr ? diasStr.split(',').map((d: string) => d.trim()).filter(Boolean) : [],
+            direccion: (record.get('direccion') as string) || '',
+            telefono: (record.get('telefono') as string) || '',
+            instagram: (record.get('instagram') as string) || '',
         };
     } catch (error) {
         console.error('Error fetching config:', error);
@@ -318,27 +324,15 @@ export async function getConfig(): Promise<Config> {
 
 export async function actualizarConfig(clave: string, valor: string): Promise<void> {
     try {
-        const records = await configTable.select({
-            filterByFormula: `Clave = '${clave}'`
-        }).firstPage();
+        const records = await configTable.select().firstPage();
 
         if (records.length > 0) {
             await configTable.update([
                 {
                     id: records[0].id,
                     fields: {
-                        Valor: valor
-                    }
-                }
-            ]);
-        } else {
-            // Optional fallback if clave doesn't exist, create it.
-            await configTable.create([
-                {
-                    fields: {
-                        Clave: clave,
-                        Valor: valor
-                    }
+                        [clave]: valor,
+                    },
                 }
             ]);
         }

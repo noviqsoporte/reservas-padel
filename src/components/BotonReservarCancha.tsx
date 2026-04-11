@@ -23,7 +23,7 @@ export default function BotonReservarCancha({ canchaId, activa }: BotonReservarC
         return (
             <button
                 disabled
-                className="bg-[#1e3a5f] text-white font-semibold text-sm px-6 py-2.5 rounded-lg w-auto opacity-40 cursor-not-allowed"
+                className="bg-[#0057FF] text-white font-semibold text-sm px-6 py-2.5 rounded-lg w-auto opacity-40 cursor-not-allowed"
             >
                 No disponible
             </button>
@@ -33,7 +33,7 @@ export default function BotonReservarCancha({ canchaId, activa }: BotonReservarC
     return (
         <button
             onClick={handleClick}
-            className="bg-[#1e3a5f] text-white font-semibold text-sm px-6 py-2.5 rounded-lg w-auto hover:bg-[#2563eb] transition-colors duration-200"
+            className="bg-[#0057FF] text-white font-semibold text-sm px-6 py-2.5 rounded-lg w-auto hover:bg-[#0041cc] transition-colors duration-200"
         >
             Reservar &rarr;
         </button>

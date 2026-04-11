@@ -130,7 +130,8 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
                     <div>
                         <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Horario apertura</label>
                         <input
-                            type="time"
+                            type="text"
+                            placeholder="07:00 a.m."
                             value={form.horario_apertura}
                             onChange={(e) => setForm({ ...form, horario_apertura: e.target.value })}
                             className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
@@ -139,7 +140,8 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
                     <div>
                         <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Horario cierre</label>
                         <input
-                            type="time"
+                            type="text"
+                            placeholder="11:00 p.m."
                             value={form.horario_cierre}
                             onChange={(e) => setForm({ ...form, horario_cierre: e.target.value })}
                             className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
@@ -149,7 +151,7 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
 
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mt-4">
                     <p className="text-xs text-blue-700 leading-snug">
-                        Los slots de reserva se generan automáticamente entre estos horarios en intervalos de 60 minutos.
+                        Formato libre (ej: &ldquo;07:00 a.m.&rdquo; o &ldquo;07:00&rdquo;). Los slots se generan automáticamente entre estos horarios.
                     </p>
                 </div>
             </div>

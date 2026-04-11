@@ -6,7 +6,7 @@ export default function ReservaSection() {
             <div className="max-w-6xl mx-auto">
                 {/* Header de sección */}
                 <div className="text-center mb-12">
-                    <div className="text-[#1e3a5f] text-xs font-semibold tracking-widest uppercase mb-3">
+                    <div className="text-[#0057FF] text-xs font-semibold tracking-widest uppercase mb-3">
                         Reservaciones
                     </div>
                     <h2 className="text-4xl font-bold text-[#0f172a]">

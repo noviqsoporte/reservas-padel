@@ -5,7 +5,7 @@ export default function ComoFuncionaSection() {
 
                 {/* Header de sección */}
                 <div className="text-center mb-16">
-                    <div className="text-[#1e3a5f] text-xs font-semibold tracking-widest uppercase mb-3">
+                    <div className="text-[#0057FF] text-xs font-semibold tracking-widest uppercase mb-3">
                         El Proceso
                     </div>
                     <h2 className="text-4xl font-bold text-[#0f172a]">
@@ -26,7 +26,7 @@ export default function ComoFuncionaSection() {
 
                         {/* Paso 1 */}
                         <div className="text-center px-6 relative z-10 mb-12 md:mb-0">
-                            <div className="w-12 h-12 rounded-full bg-[#1e3a5f] text-white text-lg font-bold mx-auto mb-6 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full bg-[#0057FF] text-white text-lg font-bold mx-auto mb-6 flex items-center justify-center">
                                 1
                             </div>
                             <div className="text-3xl mb-3">🏟️</div>
@@ -38,7 +38,7 @@ export default function ComoFuncionaSection() {
 
                         {/* Paso 2 */}
                         <div className="text-center px-6 relative z-10 mb-12 md:mb-0">
-                            <div className="w-12 h-12 rounded-full bg-[#1e3a5f] text-white text-lg font-bold mx-auto mb-6 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full bg-[#0057FF] text-white text-lg font-bold mx-auto mb-6 flex items-center justify-center">
                                 2
                             </div>
                             <div className="text-3xl mb-3">🗓️</div>
@@ -50,7 +50,7 @@ export default function ComoFuncionaSection() {
 
                         {/* Paso 3 */}
                         <div className="text-center px-6 relative z-10">
-                            <div className="w-12 h-12 rounded-full bg-[#1e3a5f] text-white text-lg font-bold mx-auto mb-6 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full bg-[#0057FF] text-white text-lg font-bold mx-auto mb-6 flex items-center justify-center">
                                 3
                             </div>
                             <div className="text-3xl mb-3">✅</div>
@@ -68,7 +68,7 @@ export default function ComoFuncionaSection() {
                     <p className="text-[#64748b] mt-2">Asegura tu lugar ahora mismo</p>
                     <a
                         href="#reservar"
-                        className="inline-block bg-[#1e3a5f] text-white font-semibold px-10 py-4 rounded-xl hover:bg-[#2563eb] transition-colors mt-6"
+                        className="inline-block bg-[#0057FF] text-white font-semibold px-10 py-4 rounded-xl hover:bg-[#0041cc] transition-colors mt-6"
                     >
                         Reservar mi cancha
                     </a>

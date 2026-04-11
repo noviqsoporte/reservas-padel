@@ -22,3 +22,47 @@
     }
   }
 }
+
+/* Nunito scoped to public landing — does NOT affect /admin/* */
+.page-public,
+.page-public h1,
+.page-public h2,
+.page-public h3,
+.page-public h4,
+.page-public h5,
+.page-public h6 {
+  font-family: var(--font-nunito), sans-serif;
+}
+
+@layer utilities {
+  .btn-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.18) 50%,
+      transparent 100%
+    );
+    transform: skewX(-15deg);
+    pointer-events: none;
+  }
+
+  .btn-shimmer:hover::after {
+    animation: shimmer-slide 0.55s ease-out;
+  }
+
+  @keyframes shimmer-slide {
+    from { left: -100%; }
+    to   { left: 160%; }
+  }
+}
