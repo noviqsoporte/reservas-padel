@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getConfig, actualizarConfig } from '@/lib/airtable';
+import { getConfig, actualizarConfig } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 

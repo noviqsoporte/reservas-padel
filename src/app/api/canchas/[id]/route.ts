@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCancha, actualizarCancha } from '@/lib/airtable';
+import { getCancha, actualizarCancha } from '@/lib/db';
 
 export async function GET(
     request: Request,

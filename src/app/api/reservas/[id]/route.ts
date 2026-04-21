@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { actualizarReserva, cancelarReserva } from '@/lib/airtable';
+import { actualizarReserva, cancelarReserva } from '@/lib/db';
 
 export async function PATCH(
     request: Request,

@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import IntroAnimation from "@/components/IntroAnimation";
 import FloatingContactButtons from "@/components/FloatingContactButtons";
 import { Config } from "@/types";
-import { getConfig, getCanchas } from '@/lib/airtable';
+import { getConfig, getCanchas } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 

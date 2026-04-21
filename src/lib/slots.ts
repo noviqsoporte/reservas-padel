@@ -68,16 +68,20 @@ export function generarSlots(
         const slotEndStr = format(nextTime, 'HH:mm');
 
         const isOcupadoReserva = reservasDelDia.some(reserva => {
-            // Normalize to HH:mm in case Airtable returns "12:00:00"
+            if (reserva.cancha_id !== canchaId) return false;
+            if (reserva.estado === 'Cancelada') return false;
+
+            // Pendiente + online: bloquea solo si created_at hace menos de 30 min
+            if (reserva.estado === 'Pendiente' && reserva.metodo_pago === 'online') {
+                if (!reserva.created_at) return false;
+                const edad = Date.now() - new Date(reserva.created_at).getTime();
+                if (edad > 30 * 60 * 1000) return false;
+            }
+
             const rInicio = (reserva.hora_inicio || '').slice(0, 5);
             const rFin = (reserva.hora_fin || '').slice(0, 5);
-            const solapamiento = reserva.cancha_id === canchaId &&
-                reserva.estado !== 'Cancelada' &&
-                rInicio < slotEndStr &&
-                rFin > slotStartStr;
-            if (reserva.cancha_id === canchaId && reserva.estado !== 'Cancelada') {
-                console.log(`[slots] slot ${slotStartStr}-${slotEndStr}: reserva ${rInicio}-${rFin} solapamiento=${solapamiento} → ${solapamiento ? 'BLOQUEADO' : 'libre'}`);
-            }
+            const solapamiento = rInicio < slotEndStr && rFin > slotStartStr;
+            console.log(`[slots] slot ${slotStartStr}-${slotEndStr}: reserva ${rInicio}-${rFin} estado=${reserva.estado} metodo=${reserva.metodo_pago} solapamiento=${solapamiento} → ${solapamiento ? 'BLOQUEADO' : 'libre'}`);
             return solapamiento;
         });
 

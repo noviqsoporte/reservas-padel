@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getConfig, getReservas, getBloqueos } from '@/lib/airtable';
+import { getConfig, getBloqueos, getReservas } from '@/lib/db';
 import { generarSlots } from '@/lib/slots';
 
 export const dynamic = 'force-dynamic';
@@ -35,11 +35,14 @@ export async function GET(request: Request) {
             return NextResponse.json({ slots: [], motivo: 'dia_no_operativo', fecha, cancha_id });
         }
 
-        console.log(`[disponibilidad] buscando reservas: cancha_id=${cancha_id} fecha=${fecha}`);
-        const reservasDelDia = await getReservas(fecha);
-        console.log(`[disponibilidad] reservas encontradas: ${reservasDelDia.length}`);
+        console.log(`[disponibilidad] buscando reservas con getReservas: cancha_id=${cancha_id} fecha=${fecha}`);
+        const todasReservas = await getReservas(fecha);
+        const reservasDelDia = todasReservas.filter(
+            r => r.cancha_id === cancha_id && r.estado !== 'Cancelada'
+        );
+        console.log('[disponibilidad] reservas encontradas con getReservas:', reservasDelDia.length);
         reservasDelDia.forEach((r, i) => {
-            console.log(`[disponibilidad] reserva[${i}]: cancha=${r.cancha_id} inicio=${r.hora_inicio} fin=${r.hora_fin} estado=${r.estado}`);
+            console.log(`[disponibilidad] reserva[${i}]: inicio=${r.hora_inicio} fin=${r.hora_fin} estado=${r.estado}`);
         });
 
         const todosLosBloqueos = await getBloqueos();

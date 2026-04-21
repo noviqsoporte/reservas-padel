@@ -1,6 +1,6 @@
 import { Bloqueo, Cancha } from "@/types";
 import BloqueosManager from "@/components/admin/BloqueosManager";
-import { getBloqueos, getCanchas } from '@/lib/airtable';
+import { getBloqueos, getCanchas } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 

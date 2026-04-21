@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getBloqueos, crearBloqueo } from '@/lib/airtable';
+import { getBloqueos, crearBloqueo } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 

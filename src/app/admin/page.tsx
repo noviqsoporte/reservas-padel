@@ -2,7 +2,7 @@ import { Cancha, Reserva } from "@/types";
 import DashboardKPIs from "@/components/admin/DashboardKPIs";
 import ReservasHoy from "@/components/admin/ReservasHoy";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
-import { getReservas, getCanchas } from '@/lib/airtable';
+import { getReservas, getCanchas } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 

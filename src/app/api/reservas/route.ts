@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getReservas, crearReserva } from '@/lib/airtable';
+import { getReservas, crearReserva } from '@/lib/db';
 import { Reserva } from '@/types';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +28,13 @@ export async function POST(request: Request) {
             hora_fin,
             nombre_cliente,
             telefono,
-            email
+            email,
+            metodo_pago,
         } = body;
+
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        const profile_id = user?.id || body.profile_id || null;
 
         if (!cancha_id || !fecha || !hora_inicio || !hora_fin || !nombre_cliente || !telefono || !email) {
             return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
@@ -48,6 +54,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'El horario ya no está disponible' }, { status: 409 });
         }
 
+        const id_reserva = `RES-${Date.now()}`;
+
         const nuevaReservaData: Omit<Reserva, 'id'> = {
             cancha_id,
             fecha,
@@ -56,8 +64,12 @@ export async function POST(request: Request) {
             nombre_cliente,
             telefono,
             email,
-            estado: 'Confirmada',
-            notas: body.notas || ''
+            estado: metodo_pago === 'online' ? 'Pendiente' : 'Confirmada',
+            notas: body.notas || '',
+            id_reserva,
+            ...(profile_id ? { profile_id } : {}),
+            ...(metodo_pago ? { metodo_pago } : {}),
+            ...(metodo_pago === 'online' ? { pago_estado: 'pendiente' as const } : {}),
         };
 
         const reserva = await crearReserva(nuevaReservaData);

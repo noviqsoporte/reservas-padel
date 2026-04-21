@@ -10,16 +10,23 @@ export interface Cancha {
 
 export interface Reserva {
     id: string
-    cancha_id: string
+    cancha_id: string          // UUID directo (antes era string[] de Airtable)
     cancha_nombre?: string
-    fecha: string        // ISO: "2025-03-15"
-    hora_inicio: string  // "09:00"
-    hora_fin: string     // "10:00"
+    fecha: string              // ISO: "2025-03-15"
+    hora_inicio: string        // "09:00"
+    hora_fin: string           // "10:00"
     nombre_cliente: string
     telefono: string
     email: string
     estado: 'Confirmada' | 'Cancelada' | 'Pendiente' | 'Completada' | 'No show'
     notas?: string
+    id_reserva?: string
+    profile_id?: string
+    metodo_pago?: 'efectivo' | 'online'
+    pago_estado?: 'pendiente' | 'pagado' | 'fallido'
+    stripe_session_id?: string
+    monto_pagado?: number
+    created_at?: string
 }
 
 export interface Bloqueo {
@@ -44,4 +51,31 @@ export interface SlotHorario {
     hora_inicio: string
     hora_fin: string
     disponible: boolean
+}
+
+export interface Profile {
+    id: string
+    email: string
+    nombre?: string
+    created_at: string
+}
+
+export interface Lead {
+    id: string
+    nombre: string
+    email: string
+    telefono?: string
+    fuente?: string
+    estado: string
+    created_at: string
+}
+
+export interface Promocion {
+    id: string
+    titulo: string
+    descripcion?: string
+    descuento: number
+    activa: boolean
+    fecha_inicio?: string
+    fecha_fin?: string
 }

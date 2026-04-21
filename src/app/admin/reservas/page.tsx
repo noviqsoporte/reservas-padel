@@ -1,6 +1,6 @@
 import { Cancha, Reserva } from "@/types";
 import ReservasManager from "@/components/admin/ReservasManager";
-import { getReservas, getCanchas } from '@/lib/airtable';
+import { getReservas, getCanchas } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 

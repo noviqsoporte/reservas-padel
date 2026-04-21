@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCanchas, crearCancha } from '@/lib/airtable';
+import { getCanchas, crearCancha } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 

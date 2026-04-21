@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { format, addDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "react-hot-toast";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Cancha, SlotHorario } from "@/types";
+import { useSession } from "@/hooks/useSession";
+import { createClient } from "@/lib/supabase/client";
 
 const DURACIONES = [
     { label: "1h", minutos: 60 },
@@ -33,6 +35,7 @@ const slotItem = {
 };
 
 export default function ReservaWizard() {
+    const { user, profile, signOut } = useSession();
     const [step, setStep] = useState<1 | 2 | 3 | "success">(1);
     const [direction, setDirection] = useState<1 | -1>(1);
     const [canchas, setCanchas] = useState<Cancha[]>([]);
@@ -43,9 +46,28 @@ export default function ReservaWizard() {
     const [slots, setSlots] = useState<SlotHorario[]>([]);
     const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
     const [loadingSubmit, setLoadingSubmit] = useState<boolean>(false);
+    const [guardarDatos, setGuardarDatos] = useState(false);
+    const [metodoPago, setMetodoPago] = useState<'efectivo' | 'online' | null>(null);
 
     const [formData, setFormData] = useState({ nombre: "", telefono: "", email: "", notas: "" });
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+    // Precargar datos del perfil cuando hay sesión
+    useEffect(() => {
+        if (profile) {
+            setFormData(prev => ({
+                ...prev,
+                nombre: profile.nombre ?? prev.nombre,
+                telefono: profile.telefono ?? prev.telefono,
+                email: profile.email ?? prev.email,
+            }));
+        } else if (user) {
+            setFormData(prev => ({
+                ...prev,
+                email: user.email ?? prev.email,
+            }));
+        }
+    }, [profile, user]);
 
     useEffect(() => {
         async function fetchCanchas() {
@@ -121,10 +143,13 @@ export default function ReservaWizard() {
     };
 
     const handleSubmit = async () => {
-        if (!validateForm() || !canchaSeleccionada || !fecha || !slotSeleccionado) return;
+        if (!validateForm() || !canchaSeleccionada || !fecha || !slotSeleccionado || !metodoPago) return;
         setLoadingSubmit(true);
 
         try {
+            // Obtener profile_id si hay sesión activa
+            const profileId = profile?.id ?? undefined;
+
             const res = await fetch("/api/reservas", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -137,10 +162,59 @@ export default function ReservaWizard() {
                     telefono: formData.telefono,
                     email: formData.email,
                     notas: formData.notas,
+                    metodo_pago: metodoPago,
+                    ...(profileId ? { profile_id: profileId } : {}),
                 }),
             });
 
             if (res.ok) {
+                const reservaData = await res.json();
+                const reservaId = reservaData.id ?? reservaData.reserva?.id;
+
+                // Guardar lead siempre con fuente='reserva'
+                if (!user) {
+                    const supabase = createClient();
+                    await supabase.from("leads").upsert(
+                        { email: formData.email, fuente: "reserva" },
+                        { onConflict: "email" }
+                    );
+
+                    if (guardarDatos) {
+                        await supabase.auth.signInWithOtp({
+                            email: formData.email,
+                            options: { shouldCreateUser: true },
+                        });
+                    }
+                }
+
+                if (metodoPago === 'online' && reservaId && canchaSeleccionada && slotSeleccionado) {
+                    const checkoutRes = await fetch("/api/pagos/checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            reserva_id: reservaId,
+                            cancha_nombre: canchaSeleccionada.nombre,
+                            fecha,
+                            hora_inicio: slotSeleccionado.hora_inicio,
+                            hora_fin: slotSeleccionado.hora_fin,
+                            monto: canchaSeleccionada.precio,
+                            email: formData.email,
+                            nombre: formData.nombre,
+                        }),
+                    });
+
+                    if (checkoutRes.ok) {
+                        const { url } = await checkoutRes.json();
+                        sessionStorage.removeItem("cancha_preseleccionada");
+                        window.location.href = url;
+                        return;
+                    } else {
+                        toast.error("Error al iniciar el pago. Intenta de nuevo.");
+                        setLoadingSubmit(false);
+                        return;
+                    }
+                }
+
                 setDirection(1);
                 setStep("success");
                 sessionStorage.removeItem("cancha_preseleccionada");
@@ -166,6 +240,8 @@ export default function ReservaWizard() {
         setSlotSeleccionado(null);
         setFormData({ nombre: "", telefono: "", email: "", notas: "" });
         setFormErrors({});
+        setMetodoPago(null);
+        setGuardarDatos(false);
     };
 
     const duracionLabel = DURACIONES.find((d) => d.minutos === duracion)?.label ?? `${duracion}min`;
@@ -333,7 +409,7 @@ export default function ReservaWizard() {
 
                             <div className="mb-5">
                                 <h3 className="text-[#0f172a] font-semibold text-lg">
-                                    Cancha {canchaSeleccionada.nombre} ·{" "}
+                                    {canchaSeleccionada.nombre} ·{" "}
                                     <span className="capitalize">
                                         {format(new Date(fecha + "T12:00:00"), "EEEE d 'de' MMMM", { locale: es })}
                                     </span>
@@ -457,7 +533,23 @@ export default function ReservaWizard() {
                                         &larr; Cambiar horario
                                     </button>
 
-                                    <h3 className="font-semibold text-[#0f172a] mb-6 text-xl">Tus Datos</h3>
+                                    <h3 className="font-semibold text-[#0f172a] mb-4 text-xl">Tus Datos</h3>
+
+                                    {/* Banner de sesión activa */}
+                                    {user && (
+                                        <div className="flex items-center justify-between bg-[#f0f7ff] border border-[#0057FF]/20 rounded-xl px-4 py-3 mb-4">
+                                            <p className="text-sm text-[#0f172a]">
+                                                Reservando como <strong>{profile?.nombre ?? user.email}</strong>
+                                            </p>
+                                            <button
+                                                onClick={signOut}
+                                                className="flex items-center gap-1 text-xs text-[#64748b] hover:text-red-500 transition-colors"
+                                            >
+                                                <LogOut className="w-3.5 h-3.5" />
+                                                Salir
+                                            </button>
+                                        </div>
+                                    )}
 
                                     <div className="space-y-4 text-left">
                                         {[
@@ -497,6 +589,74 @@ export default function ReservaWizard() {
                                                 className="w-full border border-[#e2e8f0] rounded-xl px-4 py-3 focus:outline-none focus:border-[#0057FF] focus:ring-1 focus:ring-[#0057FF] text-[#0f172a] resize-none bg-white"
                                             />
                                         </div>
+
+                                        {/* Checkbox guardar datos — solo si no hay sesión */}
+                                        {!user && (
+                                            <label className="flex items-start gap-3 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={guardarDatos}
+                                                    onChange={(e) => setGuardarDatos(e.target.checked)}
+                                                    className="mt-0.5 w-4 h-4 rounded border-[#e2e8f0] text-[#0057FF] focus:ring-[#0057FF] cursor-pointer"
+                                                />
+                                                <span className="text-sm text-[#64748b] group-hover:text-[#0f172a] transition-colors">
+                                                    Guardar mis datos para futuras reservas
+                                                    <span className="block text-xs text-[#94a3b8] mt-0.5">Recibirás un link por email para activar tu cuenta</span>
+                                                </span>
+                                            </label>
+                                        )}
+                                    </div>
+
+                                    {/* Método de pago */}
+                                    <div className="mt-6">
+                                        <h4 className="font-semibold text-[#0f172a] mb-3">¿Cómo quieres pagar?</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {/* Efectivo */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setMetodoPago('efectivo')}
+                                                className={`text-left border-2 rounded-xl p-4 transition-all ${
+                                                    metodoPago === 'efectivo'
+                                                        ? 'border-[#0057FF] bg-[#0057FF]/5'
+                                                        : 'border-[#e2e8f0] hover:border-[#0057FF]/40'
+                                                }`}
+                                            >
+                                                <span className="text-2xl block mb-2">💵</span>
+                                                <span className="block font-semibold text-[#0f172a] text-sm">Pagar en efectivo</span>
+                                                <span className="block text-xs text-[#64748b] mt-1">Paga el día de tu reserva en el club</span>
+                                                <span className="inline-block mt-2 text-xs font-medium bg-[#f1f5f9] text-[#64748b] rounded-full px-2.5 py-0.5">
+                                                    Sin cargo adicional
+                                                </span>
+                                            </button>
+
+                                            {/* Online */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setMetodoPago('online')}
+                                                className={`text-left border-2 rounded-xl p-4 transition-all ${
+                                                    metodoPago === 'online'
+                                                        ? 'border-[#0057FF] bg-[#0057FF]/5'
+                                                        : 'border-[#e2e8f0] hover:border-[#0057FF]/40'
+                                                }`}
+                                            >
+                                                <span className="text-2xl block mb-2">💳</span>
+                                                <span className="block font-semibold text-[#0f172a] text-sm">Pagar en línea</span>
+                                                <span className="block text-xs text-[#64748b] mt-1">Pago seguro con tarjeta de crédito o débito</span>
+                                                <span className="inline-block mt-2 text-xs font-medium bg-[#0057FF]/10 text-[#0057FF] rounded-full px-2.5 py-0.5">
+                                                    Confirma al instante
+                                                </span>
+                                            </button>
+                                        </div>
+
+                                        {/* Banner aviso pago online sin sesión */}
+                                        {metodoPago === 'online' && !user && (
+                                            <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mt-3">
+                                                <span className="text-base mt-0.5">⚠️</span>
+                                                <p className="text-sm text-amber-800">
+                                                    Para pagar en línea necesitas una cuenta. Al confirmar te enviaremos un link de acceso a tu correo.
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -551,10 +711,12 @@ export default function ReservaWizard() {
 
                                         <button
                                             onClick={handleSubmit}
-                                            disabled={loadingSubmit}
+                                            disabled={loadingSubmit || !metodoPago}
                                             className={`btn-shimmer w-full py-4 rounded-xl font-bold flex items-center justify-center transition-colors ${
                                                 loadingSubmit
                                                     ? "bg-[#0057FF]/80 text-white cursor-wait"
+                                                    : !metodoPago
+                                                    ? "bg-[#0057FF]/40 text-white cursor-not-allowed"
                                                     : "bg-[#0057FF] text-white hover:bg-[#0041cc]"
                                             }`}
                                         >
@@ -564,7 +726,7 @@ export default function ReservaWizard() {
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                                     </svg>
-                                                    Confirmando...
+                                                    {metodoPago === 'online' ? 'Redirigiendo al pago seguro...' : 'Confirmando...'}
                                                 </>
                                             ) : (
                                                 "Confirmar reserva"

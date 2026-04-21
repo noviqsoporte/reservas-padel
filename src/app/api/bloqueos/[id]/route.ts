@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eliminarBloqueo } from '@/lib/airtable';
+import { eliminarBloqueo } from '@/lib/db';
 
 export async function DELETE(
     request: Request,

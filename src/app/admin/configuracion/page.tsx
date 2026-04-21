@@ -1,6 +1,6 @@
 import { Config } from "@/types";
 import ConfiguracionManager from "@/components/admin/ConfiguracionManager";
-import { getConfig } from '@/lib/airtable';
+import { getConfig } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,6 +1,6 @@
 import { Cancha } from "@/types";
 import CanchasManager from "@/components/admin/CanchasManager";
-import { getCanchas } from '@/lib/airtable';
+import { getCanchas } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 

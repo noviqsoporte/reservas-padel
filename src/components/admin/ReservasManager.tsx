@@ -263,6 +263,7 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                                     <th className="px-6 py-3 text-xs font-semibold text-[#64748b] uppercase tracking-wide whitespace-nowrap">Cliente</th>
                                     <th className="px-6 py-3 text-xs font-semibold text-[#64748b] uppercase tracking-wide whitespace-nowrap">Contacto</th>
                                     <th className="px-6 py-3 text-xs font-semibold text-[#64748b] uppercase tracking-wide whitespace-nowrap">Estado</th>
+                                    <th className="px-6 py-3 text-xs font-semibold text-[#64748b] uppercase tracking-wide whitespace-nowrap">Pago</th>
                                     <th className="px-6 py-3 text-xs font-semibold text-[#64748b] uppercase tracking-wide whitespace-nowrap">Acciones</th>
                                 </tr>
                             </thead>
@@ -328,6 +329,25 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                                                     <option value="Completada">✅ Completada</option>
                                                     <option value="No show">👻 No show</option>
                                                 </select>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {reserva.pago_estado === 'pagado' ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+                                                        Pagado
+                                                    </span>
+                                                ) : reserva.pago_estado === 'fallido' ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600 border border-red-200">
+                                                        Fallido
+                                                    </span>
+                                                ) : reserva.metodo_pago === 'efectivo' ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 border border-yellow-200">
+                                                        Efectivo
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f1f5f9] text-[#64748b] border border-[#e2e8f0]">
+                                                        Pendiente
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {reserva.estado !== 'Cancelada' ? (
