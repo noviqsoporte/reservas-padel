@@ -10,6 +10,8 @@ export async function getConfig(): Promise<Config> {
     .limit(1)
     .single()
 
+  console.log('[getConfig] data raw:', JSON.stringify(data))
+
   if (error || !data) {
     return {
       negocio_nombre: '',
@@ -19,6 +21,8 @@ export async function getConfig(): Promise<Config> {
       direccion: '',
       telefono: '',
       instagram: '',
+      horas_pico: '',
+      dias_pico: '',
     }
   }
 
@@ -31,6 +35,8 @@ export async function getConfig(): Promise<Config> {
     direccion: data.direccion || '',
     telefono: data.telefono || '',
     instagram: data.instagram || '',
+    horas_pico: data.horas_pico || '',
+    dias_pico: data.dias_pico || '',
   }
 }
 
@@ -83,6 +89,7 @@ export async function crearCancha(data: Omit<Cancha, 'id'>): Promise<Cancha> {
       foto_url: data.foto_url,
       activa: data.activa,
       precio: data.precio,
+      precio_pico: data.precio_pico ?? null,
       color: data.color || '#1e3a5f',
     })
     .select()
@@ -99,6 +106,7 @@ export async function actualizarCancha(id: string, data: Partial<Cancha>): Promi
   if (data.foto_url !== undefined) fields.foto_url = data.foto_url
   if (data.activa !== undefined) fields.activa = data.activa
   if (data.precio !== undefined) fields.precio = data.precio
+  if (data.precio_pico !== undefined) fields.precio_pico = data.precio_pico
   if (data.color !== undefined) fields.color = data.color
 
   const { data: row, error } = await serviceClient
@@ -280,6 +288,7 @@ function mapCancha(row: Record<string, unknown>): Cancha {
     foto_url: row.foto_url as string,
     activa: row.activa as boolean,
     precio: row.precio as number,
+    precio_pico: (row.precio_pico as number) || undefined,
     color: row.color as string,
   }
 }

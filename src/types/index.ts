@@ -5,6 +5,7 @@ export interface Cancha {
     foto_url: string
     activa: boolean
     precio: number
+    precio_pico?: number
     color: string
 }
 
@@ -45,12 +46,16 @@ export interface Config {
     direccion: string
     telefono: string
     instagram: string
+    horas_pico?: string
+    dias_pico?: string
 }
 
 export interface SlotHorario {
     hora_inicio: string
     hora_fin: string
     disponible: boolean
+    es_pico?: boolean
+    precio?: number
 }
 
 export interface Profile {

@@ -12,8 +12,10 @@ export default async function ConfiguracionPage() {
         dias_operacion: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
         direccion: 'Dirección del club',
         telefono: '+52 55 0000 0000',
-        instagram: '@padelclub'
-    } as unknown as Config));
+        instagram: '@padelclub',
+        horas_pico: '',
+        dias_pico: '',
+    } as Config));
 
     return (
         <div>

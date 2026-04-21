@@ -101,8 +101,22 @@ export default function CanchasSection({ canchas }: CanchasSectionProps) {
                                         <div>
                                             {cancha.precio > 0 ? (
                                                 <>
-                                                    <span className="text-2xl font-bold text-[#1e3a5f]">${cancha.precio}</span>
-                                                    <span className="text-sm text-[#64748b]">/hora</span>
+                                                    {cancha.precio_pico && cancha.precio_pico > 0 ? (
+                                                        <div>
+                                                            <div>
+                                                                <span className="text-2xl font-bold text-[#1e3a5f]">${cancha.precio}</span>
+                                                                <span className="text-sm text-[#64748b]"> normal</span>
+                                                            </div>
+                                                            <div className="text-sm text-orange-500 font-medium">
+                                                                ${cancha.precio_pico} <span className="text-xs text-[#94a3b8] font-normal">hora pico</span>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <span className="text-2xl font-bold text-[#1e3a5f]">${cancha.precio}</span>
+                                                            <span className="text-sm text-[#64748b]">/hora</span>
+                                                        </>
+                                                    )}
                                                 </>
                                             ) : (
                                                 <span className="text-[#64748b] font-medium">Consultar</span>

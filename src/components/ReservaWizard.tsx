@@ -197,7 +197,7 @@ export default function ReservaWizard() {
                             fecha,
                             hora_inicio: slotSeleccionado.hora_inicio,
                             hora_fin: slotSeleccionado.hora_fin,
-                            monto: canchaSeleccionada.precio,
+                            monto: slotSeleccionado.precio ?? canchaSeleccionada.precio,
                             email: formData.email,
                             nombre: formData.nombre,
                         }),
@@ -460,16 +460,28 @@ export default function ReservaWizard() {
                                                         key={index}
                                                         variants={slotItem}
                                                         onClick={() => setSlotSeleccionado(slot)}
-                                                        className={`flex flex-col items-center justify-center rounded-xl py-3 text-sm font-medium transition-all ${
+                                                        className={`relative flex flex-col items-center justify-center rounded-xl py-3 text-sm font-medium transition-all ${
                                                             isSelected
                                                                 ? "bg-[#0057FF] text-white border-2 border-[#0057FF]"
                                                                 : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:border-[#0057FF] hover:bg-[#0057FF]/5"
                                                         }`}
                                                     >
+                                                        {slot.es_pico && (
+                                                            <span className={`absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap ${
+                                                                isSelected ? "bg-orange-300 text-orange-900" : "bg-orange-100 text-orange-600"
+                                                            }`}>
+                                                                PICO
+                                                            </span>
+                                                        )}
                                                         <span className="text-base">{slot.hora_inicio}</span>
-                                                        <span className={`text-xs mt-1 ${isSelected ? "opacity-90" : "opacity-70 text-[#64748b]"}`}>
+                                                        <span className={`text-xs mt-0.5 ${isSelected ? "opacity-90" : "opacity-70 text-[#64748b]"}`}>
                                                             {duracionLabel}
                                                         </span>
+                                                        {slot.precio !== undefined && slot.precio > 0 && (
+                                                            <span className={`text-xs font-semibold mt-0.5 ${isSelected ? "text-white/90" : "text-[#0057FF]"}`}>
+                                                                ${slot.precio}
+                                                            </span>
+                                                        )}
                                                     </motion.button>
                                                 );
                                             } else {
@@ -696,9 +708,16 @@ export default function ReservaWizard() {
                                                 <div className="flex items-center gap-2 text-[#64748b]">
                                                     <span>💰</span>
                                                     <span>Total:</span>
+                                                    {slotSeleccionado.es_pico && (
+                                                        <span className="text-[9px] font-bold bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">
+                                                            Hora pico
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <span className="font-bold text-[#0057FF] text-lg">
-                                                    {canchaSeleccionada.precio > 0 ? `$${canchaSeleccionada.precio}` : "A confirmar"}
+                                                    {slotSeleccionado.precio !== undefined && slotSeleccionado.precio > 0
+                                                        ? `$${slotSeleccionado.precio}`
+                                                        : canchaSeleccionada.precio > 0 ? `$${canchaSeleccionada.precio}` : "A confirmar"}
                                                 </span>
                                             </div>
                                         </div>

@@ -27,6 +27,7 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
     const [precio, setPrecio] = useState(0);
+    const [precioPico, setPrecioPico] = useState(0);
     const [color, setColor] = useState('#1e3a5f');
     const [activa, setActiva] = useState(true);
 
@@ -41,6 +42,7 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
         setNombre('');
         setDescripcion('');
         setPrecio(0);
+        setPrecioPico(0);
         setColor('#1e3a5f');
         setActiva(true);
         setArchivoFoto(null);
@@ -59,6 +61,7 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
         setNombre(cancha.nombre);
         setDescripcion(cancha.descripcion);
         setPrecio(cancha.precio);
+        setPrecioPico(cancha.precio_pico ?? 0);
         setColor(cancha.color || '#1e3a5f');
         setActiva(cancha.activa);
         setModalAbierto('editar');
@@ -132,6 +135,7 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
                 foto_url: fotoUrlFinal,
                 activa,
                 precio,
+                precio_pico: precioPico > 0 ? precioPico : null,
                 color
             };
 
@@ -264,8 +268,15 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
 
                                 <div className="mt-4 flex-grow">
                                     {cancha.precio > 0 ? (
-                                        <div className="text-[#1e3a5f] font-bold text-lg">
-                                            ${cancha.precio.toLocaleString('es-MX')} <span className="text-sm font-normal text-[#64748b]">/ hora</span>
+                                        <div>
+                                            <div className="text-[#1e3a5f] font-bold text-lg">
+                                                ${cancha.precio.toLocaleString('es-MX')} <span className="text-sm font-normal text-[#64748b]">/ hora</span>
+                                            </div>
+                                            {cancha.precio_pico && cancha.precio_pico > 0 && (
+                                                <div className="text-orange-500 text-sm font-medium mt-0.5">
+                                                    ${cancha.precio_pico.toLocaleString('es-MX')} <span className="text-xs font-normal text-[#94a3b8]">/ hora pico</span>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="text-[#94a3b8] italic text-sm mt-1">Precio no definido</div>
@@ -355,16 +366,31 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Color identificador</label>
-                                    <div className="flex items-center gap-3 border border-[#e2e8f0] rounded-xl px-3 py-1.5">
+                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Precio hora pico</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#64748b] font-medium">$</span>
                                         <input
-                                            type="color"
-                                            value={color}
-                                            onChange={(e) => setColor(e.target.value)}
-                                            className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                                            type="number"
+                                            min="0"
+                                            value={precioPico === 0 ? '' : precioPico}
+                                            onChange={(e) => setPrecioPico(Number(e.target.value))}
+                                            placeholder="0"
+                                            className="w-full border border-[#e2e8f0] rounded-xl pl-8 pr-4 py-2.5 text-sm focus:outline-none focus:border-orange-400 bg-white text-[#0f172a]"
                                         />
-                                        <span className="text-sm text-[#64748b] uppercase">{color}</span>
                                     </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Color identificador</label>
+                                <div className="flex items-center gap-3 border border-[#e2e8f0] rounded-xl px-3 py-1.5">
+                                    <input
+                                        type="color"
+                                        value={color}
+                                        onChange={(e) => setColor(e.target.value)}
+                                        className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                                    />
+                                    <span className="text-sm text-[#64748b] uppercase">{color}</span>
                                 </div>
                             </div>
 

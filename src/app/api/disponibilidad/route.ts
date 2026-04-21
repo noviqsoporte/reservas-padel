@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getConfig, getBloqueos, getReservas } from '@/lib/db';
+import { getConfig, getBloqueos, getReservas, getCancha } from '@/lib/db';
 import { generarSlots } from '@/lib/slots';
+import { calcularPrecio, esHoraPico } from '@/lib/precios';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
 
         const duracionMinutos = [60, 90, 120, 150, 180].includes(duracion) ? duracion : 60;
 
-        const config = await getConfig();
+        const [config, cancha] = await Promise.all([getConfig(), getCancha(cancha_id)]);
 
         // Validate operating day
         const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -82,8 +83,29 @@ export async function GET(request: Request) {
 
         console.log('[disponibilidad] slots generados:', slots.length);
 
+        const horasPico = config.horas_pico || ''
+        const diasPico = config.dias_pico || ''
+        const precioNormal = cancha?.precio ?? 0
+        const precioPico = cancha?.precio_pico
+
+        console.log('[disponibilidad] config.dias_pico:', config.dias_pico)
+        console.log('[disponibilidad] config.horas_pico:', config.horas_pico)
+
+        const slotsConPrecio = slots.map(slot => {
+            if (!slot.disponible) return slot
+            const pico = esHoraPico(slot.hora_inicio, fecha, horasPico, diasPico)
+            if (slot.hora_inicio === '19:00') {
+                console.log(`[disponibilidad] slot 19:00 es_pico: ${pico}`)
+            }
+            const precio = calcularPrecio(
+                slot.hora_inicio, fecha, duracionMinutos,
+                precioNormal, precioPico, horasPico, diasPico
+            )
+            return { ...slot, es_pico: pico, precio }
+        })
+
         return NextResponse.json({
-            slots,
+            slots: slotsConPrecio,
             fecha,
             cancha_id,
             duracion: duracionMinutos,
