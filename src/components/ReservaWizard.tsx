@@ -77,6 +77,28 @@ export default function ReservaWizard() {
                     const data = await res.json();
                     setCanchas(data.canchas || []);
 
+                    // Restore pending reservation (after login redirect)
+                    const pendingRaw = sessionStorage.getItem("reserva_pendiente");
+                    if (pendingRaw && data.canchas) {
+                        try {
+                            const pending = JSON.parse(pendingRaw);
+                            const cancha = data.canchas.find((c: Cancha) => c.id === pending.canchaId);
+                            if (cancha) {
+                                setCanchaSeleccionada(cancha);
+                                setFecha(pending.fecha);
+                                setDuracion(pending.duracion);
+                                setSlotSeleccionado(pending.slotSeleccionado);
+                                setMetodoPago(pending.metodoPago);
+                                setDirection(1);
+                                setStep(3);
+                            }
+                        } catch {
+                            // ignore malformed data
+                        }
+                        sessionStorage.removeItem("reserva_pendiente");
+                        return;
+                    }
+
                     const preseleccionada = sessionStorage.getItem("cancha_preseleccionada");
                     if (preseleccionada && data.canchas) {
                         const cancha = data.canchas.find((c: Cancha) => c.id === preseleccionada);
@@ -140,6 +162,18 @@ export default function ReservaWizard() {
         }
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
+    };
+
+    const handleConfirmarConLogin = () => {
+        if (!canchaSeleccionada || !fecha || !slotSeleccionado || !metodoPago) return;
+        sessionStorage.setItem("reserva_pendiente", JSON.stringify({
+            canchaId: canchaSeleccionada.id,
+            fecha,
+            duracion,
+            slotSeleccionado,
+            metodoPago,
+        }));
+        window.location.href = `/auth?next=${encodeURIComponent("/reserva/retomar")}`;
     };
 
     const handleSubmit = async () => {
@@ -729,7 +763,7 @@ export default function ReservaWizard() {
                                         </p>
 
                                         <button
-                                            onClick={handleSubmit}
+                                            onClick={user ? handleSubmit : handleConfirmarConLogin}
                                             disabled={loadingSubmit || !metodoPago}
                                             className={`btn-shimmer w-full py-4 rounded-xl font-bold flex items-center justify-center transition-colors ${
                                                 loadingSubmit
@@ -751,6 +785,20 @@ export default function ReservaWizard() {
                                                 "Confirmar reserva"
                                             )}
                                         </button>
+
+                                        {!user && metodoPago && (
+                                            <p className="text-center mt-3 text-sm text-[#94a3b8]">
+                                                ¿No quieres crear cuenta?{" "}
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSubmit}
+                                                    disabled={loadingSubmit}
+                                                    className="text-[#64748b] hover:text-[#0057FF] underline transition-colors"
+                                                >
+                                                    Continuar sin cuenta →
+                                                </button>
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
