@@ -175,6 +175,7 @@ export async function crearReserva(data: Omit<Reserva, 'id'>): Promise<Reserva> 
       ...(data.profile_id ? { profile_id: data.profile_id } : {}),
       ...(data.metodo_pago ? { metodo_pago: data.metodo_pago } : {}),
       ...(data.pago_estado ? { pago_estado: data.pago_estado } : {}),
+      ...(data.monto_pagado !== undefined ? { monto_pagado: data.monto_pagado } : {}),
     })
     .select('*, canchas(nombre, precio)')
     .single()

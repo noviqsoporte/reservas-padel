@@ -57,6 +57,8 @@ export async function POST(request: Request) {
 
         const id_reserva = `RES-${Date.now()}`;
 
+        const monto = body.monto || 0;
+
         const nuevaReservaData: Omit<Reserva, 'id'> = {
             cancha_id,
             fecha,
@@ -70,7 +72,8 @@ export async function POST(request: Request) {
             id_reserva,
             ...(profile_id ? { profile_id } : {}),
             ...(metodo_pago ? { metodo_pago } : {}),
-            ...(metodo_pago === 'online' ? { pago_estado: 'pendiente' as const } : {}),
+            pago_estado: metodo_pago === 'online' ? 'pendiente' : 'pendiente',
+            ...(metodo_pago !== 'online' && monto > 0 ? { monto_pagado: monto } : {}),
         };
 
         const reserva = await crearReserva(nuevaReservaData);
@@ -88,7 +91,7 @@ export async function POST(request: Request) {
               hora_inicio: nuevaReservaData.hora_inicio,
               hora_fin: nuevaReservaData.hora_fin,
               duracion: duracionLabel,
-              monto: body.monto || cancha?.precio || 0,
+              monto: monto || cancha?.precio || 0,
               metodo_pago: nuevaReservaData.metodo_pago ?? 'efectivo',
               id_reserva,
             })

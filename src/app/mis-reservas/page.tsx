@@ -15,6 +15,7 @@ interface ReservaItem {
     hora_fin: string;
     estado: string;
     notas?: string;
+    monto_pagado?: number | null;
     canchas?: { nombre: string; precio: number } | null;
 }
 
@@ -126,8 +127,8 @@ export default function MisReservasPage() {
                                         <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${estadoColors[r.estado] ?? "bg-gray-100 text-gray-600 border-gray-200"}`}>
                                             {r.estado}
                                         </span>
-                                        {r.canchas?.precio ? (
-                                            <span className="text-sm font-bold text-[#0057FF]">${r.canchas.precio}</span>
+                                        {(r.monto_pagado ?? r.canchas?.precio) ? (
+                                            <span className="text-sm font-bold text-[#0057FF]">${r.monto_pagado ?? r.canchas?.precio}</span>
                                         ) : null}
                                     </div>
                                 </div>

@@ -16,12 +16,14 @@ interface DatosConfirmacion {
 }
 
 export async function enviarConfirmacionReserva(datos: DatosConfirmacion) {
-  await resend.emails.send({
+  console.log('[email] enviando a:', datos.email)
+  const result = await resend.emails.send({
     from: 'Lood <onboarding@resend.dev>',
     to: datos.email,
     subject: `✅ Reserva confirmada — ${datos.cancha} · ${datos.fecha}`,
     html: generarHTMLConfirmacion(datos),
   })
+  console.log('[email] resultado resend:', JSON.stringify(result))
 }
 
 function generarHTMLConfirmacion(datos: DatosConfirmacion): string {
