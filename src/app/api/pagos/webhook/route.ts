@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
-import { actualizarPago, getReservaById } from '@/lib/db'
+import { actualizarPago, getReservaById, getCancha } from '@/lib/db'
+import { enviarConfirmacionReserva } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +53,30 @@ export async function POST(request: Request) {
           monto_pagado: session.amount_total ? session.amount_total / 100 : undefined,
         })
         console.log('[webhook] actualizarPago completado para reserva:', reserva_id)
+
+        try {
+          const reserva = await getReservaById(reserva_id)
+          if (reserva) {
+            const cancha = await getCancha(reserva.cancha_id)
+            const inicioMin = parseInt(reserva.hora_inicio.split(':')[0]) * 60 + parseInt(reserva.hora_inicio.split(':')[1])
+            const finMin = parseInt(reserva.hora_fin.split(':')[0]) * 60 + parseInt(reserva.hora_fin.split(':')[1])
+            const duracionLabel = `${(finMin - inicioMin) / 60}h`
+            await enviarConfirmacionReserva({
+              email: reserva.email,
+              nombre: reserva.nombre_cliente,
+              cancha: cancha?.nombre ?? reserva.cancha_id,
+              fecha: reserva.fecha,
+              hora_inicio: reserva.hora_inicio,
+              hora_fin: reserva.hora_fin,
+              duracion: duracionLabel,
+              monto: session.amount_total ? session.amount_total / 100 : (cancha?.precio ?? 0),
+              metodo_pago: 'online',
+              id_reserva: reserva.id_reserva ?? reserva_id,
+            })
+          }
+        } catch (emailError) {
+          console.error('[webhook] Error enviando email de confirmación:', emailError)
+        }
       } else {
         console.warn('[webhook] checkout.session.completed sin reserva_id en metadata')
       }

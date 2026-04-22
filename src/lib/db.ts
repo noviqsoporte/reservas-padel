@@ -299,6 +299,7 @@ function mapReserva(row: Record<string, unknown>): Reserva {
     id: row.id as string,
     cancha_id: row.cancha_id as string,
     cancha_nombre: canchas?.nombre as string | undefined,
+    id_reserva: row.id_reserva as string | undefined,
     fecha: row.fecha as string,
     hora_inicio: row.hora_inicio as string,
     hora_fin: row.hora_fin as string,

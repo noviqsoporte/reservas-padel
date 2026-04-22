@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getReservas, crearReserva } from '@/lib/db';
+import { getReservas, crearReserva, getCancha } from '@/lib/db';
 import { Reserva } from '@/types';
 import { createClient } from '@/lib/supabase/server';
+import { enviarConfirmacionReserva } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,6 +74,28 @@ export async function POST(request: Request) {
         };
 
         const reserva = await crearReserva(nuevaReservaData);
+
+        if (nuevaReservaData.metodo_pago !== 'online') {
+          try {
+            const cancha = await getCancha(cancha_id)
+            const duracionMin = body.duracion
+            const duracionLabel = duracionMin ? `${duracionMin / 60}h` : `${hora_inicio}–${hora_fin}`
+            await enviarConfirmacionReserva({
+              email: nuevaReservaData.email,
+              nombre: nuevaReservaData.nombre_cliente,
+              cancha: cancha?.nombre ?? cancha_id,
+              fecha: nuevaReservaData.fecha,
+              hora_inicio: nuevaReservaData.hora_inicio,
+              hora_fin: nuevaReservaData.hora_fin,
+              duracion: duracionLabel,
+              monto: body.monto || cancha?.precio || 0,
+              metodo_pago: nuevaReservaData.metodo_pago ?? 'efectivo',
+              id_reserva,
+            })
+          } catch (emailError) {
+            console.error('Error enviando email de confirmación:', emailError)
+          }
+        }
 
         return NextResponse.json({ reserva }, { status: 201 });
     } catch (error) {
