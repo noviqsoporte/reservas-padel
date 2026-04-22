@@ -197,6 +197,8 @@ export default function ReservaWizard() {
                     email: formData.email,
                     notas: formData.notas,
                     metodo_pago: metodoPago,
+                    monto: slotSeleccionado.precio ?? canchaSeleccionada.precio,
+                    duracion,
                     ...(profileId ? { profile_id: profileId } : {}),
                 }),
             });
