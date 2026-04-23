@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -27,7 +27,7 @@ const estadoColors: Record<string, string> = {
     "No show": "bg-gray-100 text-gray-600 border-gray-200",
 };
 
-export default function MisReservasPage() {
+function MisReservasContent() {
     const { user, profile, loading, signOut } = useSession();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -160,5 +160,17 @@ export default function MisReservasPage() {
                 )}
             </main>
         </div>
+    );
+}
+
+export default function MisReservasPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-[#0057FF] border-t-transparent rounded-full animate-spin" />
+            </div>
+        }>
+            <MisReservasContent />
+        </Suspense>
     );
 }
