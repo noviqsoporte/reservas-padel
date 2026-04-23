@@ -2,6 +2,16 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+const MESES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+]
+
+function formatFechaLegible(fecha: string): string {
+  const [year, month, day] = fecha.split('-').map(Number)
+  return `${day} de ${MESES[month - 1]} de ${year}`
+}
+
 interface DatosConfirmacion {
   email: string
   nombre: string
@@ -20,7 +30,7 @@ export async function enviarConfirmacionReserva(datos: DatosConfirmacion) {
   const result = await resend.emails.send({
     from: 'Lood <reservas@evntexperiences.com>',
     to: datos.email,
-    subject: `✅ Reserva confirmada — ${datos.cancha} · ${datos.fecha}`,
+    subject: `✅ Reserva confirmada — ${datos.cancha} · ${formatFechaLegible(datos.fecha)}`,
     html: generarHTMLConfirmacion(datos),
   })
   console.log('[email] resultado resend:', JSON.stringify(result))
@@ -28,6 +38,7 @@ export async function enviarConfirmacionReserva(datos: DatosConfirmacion) {
 
 function generarHTMLConfirmacion(datos: DatosConfirmacion): string {
   const { nombre, cancha, fecha, hora_inicio, hora_fin, duracion, monto, metodo_pago, id_reserva } = datos
+  const fechaLegible = formatFechaLegible(fecha)
 
   const montoCOP = new Intl.NumberFormat('es-MX', {
     style: 'currency',
@@ -84,7 +95,7 @@ function generarHTMLConfirmacion(datos: DatosConfirmacion): string {
                 <tr>
                   <td style="padding:20px 24px;border-bottom:1px solid #e2e8f0;">
                     <span style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Fecha</span><br>
-                    <strong style="color:#1f2937;font-size:16px;">${fecha}</strong>
+                    <strong style="color:#1f2937;font-size:16px;">${fechaLegible}</strong>
                   </td>
                 </tr>
                 <tr>
