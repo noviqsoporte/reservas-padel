@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPromociones, crearPromocion } from '@/lib/db'
+import { getPromociones, getPromocionesActivas, crearPromocion } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const promociones = await getPromociones()
+    const soloActivas = req.nextUrl.searchParams.get('activas') === 'true'
+    const promociones = soloActivas ? await getPromocionesActivas() : await getPromociones()
     return NextResponse.json({ promociones })
   } catch (error) {
     console.error('[GET /api/promociones]', error)
