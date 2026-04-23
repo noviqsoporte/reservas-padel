@@ -1,7 +1,7 @@
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import CanchasSection from "@/components/CanchasSection";
-import ComoFuncionaSection from "@/components/ComoFuncionaSection";
+import ImageAutoSlider from "@/components/ui/image-auto-slider";
 import ReservaSection from "@/components/ReservaSection";
 import Footer from "@/components/Footer";
 import IntroAnimation from "@/components/IntroAnimation";
@@ -44,7 +44,7 @@ export default async function Home() {
       />
 
       <CanchasSection canchas={canchas} />
-      <ComoFuncionaSection />
+      <ImageAutoSlider />
       <ReservaSection />
 
       <Footer config={config} />
