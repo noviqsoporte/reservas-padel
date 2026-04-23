@@ -81,6 +81,7 @@ export interface Promocion {
     descripcion?: string
     descuento: number
     activa: boolean
+    imagen_url?: string
     fecha_inicio?: string
     fecha_fin?: string
 }

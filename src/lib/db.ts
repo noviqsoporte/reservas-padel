@@ -1,5 +1,5 @@
 import { serviceClient } from './supabase/service'
-import { Cancha, Reserva, Bloqueo, Config } from '../types'
+import { Cancha, Reserva, Bloqueo, Config, Promocion } from '../types'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -279,6 +279,78 @@ export async function eliminarBloqueo(id: string): Promise<void> {
   if (error) throw error
 }
 
+// ─── Promociones ──────────────────────────────────────────────────────────────
+
+export async function getPromociones(): Promise<Promocion[]> {
+  const { data, error } = await serviceClient
+    .from('promociones')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data || []).map(mapPromocion)
+}
+
+export async function getPromocionesActivas(): Promise<Promocion[]> {
+  const hoy = new Date().toISOString().split('T')[0]
+
+  const { data, error } = await serviceClient
+    .from('promociones')
+    .select('*')
+    .eq('activa', true)
+    .or(`fecha_inicio.is.null,fecha_inicio.lte.${hoy}`)
+    .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data || []).map(mapPromocion)
+}
+
+export async function crearPromocion(data: Omit<Promocion, 'id'>): Promise<Promocion> {
+  const { data: row, error } = await serviceClient
+    .from('promociones')
+    .insert({
+      titulo: data.titulo,
+      descripcion: data.descripcion || '',
+      descuento: data.descuento,
+      activa: data.activa,
+      imagen_url: data.imagen_url || null,
+      fecha_inicio: data.fecha_inicio || null,
+      fecha_fin: data.fecha_fin || null,
+    })
+    .select()
+    .single()
+
+  if (error || !row) throw error
+  return mapPromocion(row)
+}
+
+export async function actualizarPromocion(id: string, data: Partial<Promocion>): Promise<Promocion> {
+  const fields: Record<string, unknown> = {}
+  if (data.titulo !== undefined) fields.titulo = data.titulo
+  if (data.descripcion !== undefined) fields.descripcion = data.descripcion
+  if (data.descuento !== undefined) fields.descuento = data.descuento
+  if (data.activa !== undefined) fields.activa = data.activa
+  if (data.imagen_url !== undefined) fields.imagen_url = data.imagen_url
+  if (data.fecha_inicio !== undefined) fields.fecha_inicio = data.fecha_inicio || null
+  if (data.fecha_fin !== undefined) fields.fecha_fin = data.fecha_fin || null
+
+  const { data: row, error } = await serviceClient
+    .from('promociones')
+    .update(fields)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error || !row) throw error
+  return mapPromocion(row)
+}
+
+export async function eliminarPromocion(id: string): Promise<void> {
+  const { error } = await serviceClient.from('promociones').delete().eq('id', id)
+  if (error) throw error
+}
+
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
 function mapCancha(row: Record<string, unknown>): Cancha {
@@ -324,5 +396,18 @@ function mapBloqueo(row: Record<string, unknown>): Bloqueo {
     motivo: row.motivo as string,
     fecha_inicio: row.fecha_inicio as string,
     fecha_fin: row.fecha_fin as string,
+  }
+}
+
+function mapPromocion(row: Record<string, unknown>): Promocion {
+  return {
+    id: row.id as string,
+    titulo: row.titulo as string,
+    descripcion: (row.descripcion as string) || undefined,
+    descuento: row.descuento as number,
+    activa: row.activa as boolean,
+    imagen_url: (row.imagen_url as string) || undefined,
+    fecha_inicio: (row.fecha_inicio as string) || undefined,
+    fecha_fin: (row.fecha_fin as string) || undefined,
   }
 }

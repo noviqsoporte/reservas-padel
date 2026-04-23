@@ -7,7 +7,8 @@ import {
     Trophy,
     Ban,
     Settings,
-    LogOut
+    LogOut,
+    Tag
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -31,6 +32,7 @@ export default function Sidebar() {
         { href: '/admin/reservas', icon: Calendar, label: 'Reservas' },
         { href: '/admin/canchas', icon: Trophy, label: 'Canchas' },
         { href: '/admin/bloqueos', icon: Ban, label: 'Bloqueos' },
+        { href: '/admin/promociones', icon: Tag, label: 'Promociones' },
         { href: '/admin/configuracion', icon: Settings, label: 'Configuración' },
     ];
 
