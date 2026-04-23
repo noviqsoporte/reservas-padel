@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useSession } from "@/hooks/useSession";
-import { LogOut, Calendar, Clock, MapPin, X, CheckCircle } from "lucide-react";
+import { LogOut, Calendar, Clock, MapPin, X, CheckCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 interface ReservaItem {
@@ -27,6 +27,19 @@ const estadoColors: Record<string, string> = {
     "No show": "bg-gray-100 text-gray-600 border-gray-200",
 };
 
+const ESTADOS_CANCELABLES = ["Confirmada", "Pendiente"];
+const LIMITE_CANCELACION_MS = 4 * 60 * 60 * 1000; // 4 horas
+
+function puedesCancelar(reserva: ReservaItem): boolean {
+    if (!ESTADOS_CANCELABLES.includes(reserva.estado)) return false;
+    const fechaHora = new Date(`${reserva.fecha}T${reserva.hora_inicio}`);
+    return fechaHora.getTime() - Date.now() > LIMITE_CANCELACION_MS;
+}
+
+function esCancelableEstado(reserva: ReservaItem): boolean {
+    return ESTADOS_CANCELABLES.includes(reserva.estado);
+}
+
 function MisReservasContent() {
     const { user, profile, loading, signOut } = useSession();
     const router = useRouter();
@@ -34,6 +47,8 @@ function MisReservasContent() {
     const [reservas, setReservas] = useState<ReservaItem[]>([]);
     const [loadingReservas, setLoadingReservas] = useState(true);
     const [showBanner, setShowBanner] = useState(searchParams.get("pago") === "exitoso");
+    const [reservaACancelar, setReservaACancelar] = useState<ReservaItem | null>(null);
+    const [cancelando, setCancelando] = useState(false);
 
     useEffect(() => {
         if (!showBanner) return;
@@ -55,6 +70,27 @@ function MisReservasContent() {
             .catch(console.error)
             .finally(() => setLoadingReservas(false));
     }, [user]);
+
+    async function handleCancelar() {
+        if (!reservaACancelar) return;
+        setCancelando(true);
+        try {
+            const res = await fetch(`/api/reservas/${reservaACancelar.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ estado: "Cancelada" }),
+            });
+            if (!res.ok) throw new Error("Error al cancelar");
+            setReservas((prev) =>
+                prev.map((r) => r.id === reservaACancelar.id ? { ...r, estado: "Cancelada" } : r)
+            );
+            setReservaACancelar(null);
+        } catch {
+            alert("No se pudo cancelar la reserva. Intenta de nuevo.");
+        } finally {
+            setCancelando(false);
+        }
+    }
 
     if (loading) {
         return (
@@ -154,11 +190,81 @@ function MisReservasContent() {
                                         ) : null}
                                     </div>
                                 </div>
+                                {esCancelableEstado(r) && (
+                                    <div className="mt-4 pt-4 border-t border-[#f1f5f9]">
+                                        {puedesCancelar(r) ? (
+                                            <button
+                                                onClick={() => setReservaACancelar(r)}
+                                                className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors"
+                                            >
+                                                Cancelar reserva
+                                            </button>
+                                        ) : (
+                                            <p className="text-xs text-[#94a3b8]">
+                                                No se puede cancelar (menos de 4h para la reserva)
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
                 )}
             </main>
+
+            {reservaACancelar && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                                <AlertTriangle className="w-5 h-5 text-red-500" />
+                            </div>
+                            <h2 className="text-[#0f172a] font-semibold text-base">Cancelar reserva</h2>
+                        </div>
+
+                        <div className="bg-[#f8f9fa] rounded-xl p-4 mb-4 space-y-1.5 text-sm text-[#475569]">
+                            <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-[#0057FF]" />
+                                <span className="font-medium text-[#0f172a]">{reservaACancelar.canchas?.nombre ?? "Cancha"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4" />
+                                <span className="capitalize">
+                                    {format(new Date(reservaACancelar.fecha + "T12:00:00"), "EEEE d 'de' MMMM, yyyy", { locale: es })}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4" />
+                                {reservaACancelar.hora_inicio} – {reservaACancelar.hora_fin}
+                            </div>
+                        </div>
+
+                        <p className="text-sm text-[#64748b] mb-6">
+                            ¿Estás seguro que deseas cancelar esta reserva? Esta acción no se puede deshacer.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setReservaACancelar(null)}
+                                disabled={cancelando}
+                                className="flex-1 border border-[#e2e8f0] text-[#0f172a] text-sm font-medium py-2.5 rounded-xl hover:bg-[#f8f9fa] transition-colors disabled:opacity-50"
+                            >
+                                Volver
+                            </button>
+                            <button
+                                onClick={handleCancelar}
+                                disabled={cancelando}
+                                className="flex-1 bg-red-500 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-red-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                            >
+                                {cancelando ? (
+                                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : null}
+                                Sí, cancelar reserva
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
