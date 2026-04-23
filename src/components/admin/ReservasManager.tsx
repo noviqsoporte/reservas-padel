@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "react-hot-toast";
-import { Search, Pencil, X, AlertTriangle, MessageSquare, Calendar } from "lucide-react";
+import { Search, Pencil, X, AlertTriangle, MessageSquare, Calendar, Eye, User, CreditCard, Clock } from "lucide-react";
 import { Cancha, Reserva } from "@/types";
 
 interface ReservasManagerProps {
@@ -22,6 +22,7 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
     const [busqueda, setBusqueda] = useState<string>('');
 
     // Modales
+    const [reservaDetalle, setReservaDetalle] = useState<Reserva | null>(null);
     const [reservaEditando, setReservaEditando] = useState<Reserva | null>(null);
     const [reservaCancelando, setReservaCancelando] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -350,26 +351,33 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                {reserva.estado !== 'Cancelada' ? (
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => setReservaEditando(reserva)}
-                                                            className="w-8 h-8 rounded-lg bg-[#f8f9fa] hover:bg-[#e2e8f0] text-[#64748b] flex items-center justify-center transition-colors"
-                                                            title="Editar reserva"
-                                                        >
-                                                            <Pencil className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setReservaCancelando(reserva.id)}
-                                                            className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors"
-                                                            title="Cancelar reserva"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-[#94a3b8] font-bold">—</span>
-                                                )}
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setReservaDetalle(reserva)}
+                                                        className="w-8 h-8 rounded-lg bg-[#f8f9fa] hover:bg-[#e2e8f0] text-[#64748b] flex items-center justify-center transition-colors"
+                                                        title="Ver detalle"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                    {reserva.estado !== 'Cancelada' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => setReservaEditando(reserva)}
+                                                                className="w-8 h-8 rounded-lg bg-[#f8f9fa] hover:bg-[#e2e8f0] text-[#64748b] flex items-center justify-center transition-colors"
+                                                                title="Editar reserva"
+                                                            >
+                                                                <Pencil className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setReservaCancelando(reserva.id)}
+                                                                className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors"
+                                                                title="Cancelar reserva"
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -379,6 +387,170 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                     </div>
                 )}
             </div>
+
+            {/* MODAL DETALLE */}
+            {reservaDetalle && (() => {
+                const [hI, mI] = reservaDetalle.hora_inicio.split(':').map(Number);
+                const [hF, mF] = reservaDetalle.hora_fin.split(':').map(Number);
+                const duracionMin = (hF * 60 + mF) - (hI * 60 + mI);
+
+                const estadoColor: Record<string, string> = {
+                    Confirmada: 'bg-green-100 text-green-700 border-green-200',
+                    Cancelada: 'bg-red-100 text-red-600 border-red-200',
+                    Pendiente: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                    Completada: 'bg-blue-100 text-blue-700 border-blue-200',
+                    'No show': 'bg-gray-100 text-gray-600 border-gray-200',
+                };
+
+                const pagoColor: Record<string, string> = {
+                    pagado: 'bg-green-100 text-green-700 border-green-200',
+                    fallido: 'bg-red-100 text-red-600 border-red-200',
+                    pendiente: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                };
+
+                let fechaLarga = reservaDetalle.fecha;
+                try {
+                    fechaLarga = format(new Date(reservaDetalle.fecha + 'T12:00:00'), "EEEE d 'de' MMMM, yyyy", { locale: es });
+                    fechaLarga = fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1);
+                } catch (_e) { }
+
+                let createdAtLabel = '—';
+                if (reservaDetalle.created_at) {
+                    try {
+                        createdAtLabel = format(new Date(reservaDetalle.created_at), "d MMM yyyy, HH:mm", { locale: es });
+                    } catch (_e) { }
+                }
+
+                const montoLabel = reservaDetalle.monto_pagado != null
+                    ? `$${reservaDetalle.monto_pagado.toFixed(2)} MXN`
+                    : reservaDetalle.metodo_pago === 'efectivo'
+                        ? 'A cobrar en efectivo'
+                        : '—';
+
+                return (
+                    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl max-w-lg w-full shadow-xl flex flex-col max-h-[90vh] overflow-y-auto">
+                            {/* Header */}
+                            <div className="flex justify-between items-center px-6 py-4 border-b border-[#e2e8f0] sticky top-0 bg-white rounded-t-2xl">
+                                <div>
+                                    <h3 className="text-lg font-bold text-[#0f172a]">Detalle de reserva</h3>
+                                    {reservaDetalle.id_reserva && (
+                                        <span className="text-xs text-[#94a3b8] font-mono">{reservaDetalle.id_reserva}</span>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setReservaDetalle(null)}
+                                    className="text-[#64748b] hover:text-[#0f172a] rounded-full p-1.5 hover:bg-[#f1f5f9] transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-5">
+                                {/* Datos del cliente */}
+                                <section>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <User className="w-4 h-4 text-[#1e3a5f]" />
+                                        <h4 className="text-xs font-semibold text-[#64748b] uppercase tracking-wide">Datos del cliente</h4>
+                                    </div>
+                                    <div className="bg-[#f8f9fa] rounded-xl p-4 border border-[#e2e8f0] grid grid-cols-1 gap-3">
+                                        <div>
+                                            <span className="text-xs text-[#94a3b8]">Nombre</span>
+                                            <p className="font-semibold text-[#0f172a] text-sm">{reservaDetalle.nombre_cliente}</p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <span className="text-xs text-[#94a3b8]">Teléfono</span>
+                                                <p className="font-medium text-[#0f172a] text-sm">{reservaDetalle.telefono}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-[#94a3b8]">Email</span>
+                                                <p className="font-medium text-[#0f172a] text-sm break-all">{reservaDetalle.email}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Detalles de la reserva */}
+                                <section>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Clock className="w-4 h-4 text-[#1e3a5f]" />
+                                        <h4 className="text-xs font-semibold text-[#64748b] uppercase tracking-wide">Detalles de la reserva</h4>
+                                    </div>
+                                    <div className="bg-[#f8f9fa] rounded-xl p-4 border border-[#e2e8f0] grid grid-cols-2 gap-3">
+                                        <div>
+                                            <span className="text-xs text-[#94a3b8]">Cancha</span>
+                                            <p className="font-semibold text-[#0f172a] text-sm">{getCanchaName(reservaDetalle.cancha_id)}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-[#94a3b8]">Estado</span>
+                                            <div className="mt-0.5">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${estadoColor[reservaDetalle.estado] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                                    {reservaDetalle.estado}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-[#94a3b8]">Fecha</span>
+                                            <p className="font-medium text-[#0f172a] text-sm capitalize">{fechaLarga}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-[#94a3b8]">Horario</span>
+                                            <p className="font-semibold text-[#0f172a] text-sm">{reservaDetalle.hora_inicio} – {reservaDetalle.hora_fin}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-[#94a3b8]">Duración</span>
+                                            <p className="font-medium text-[#0f172a] text-sm">{duracionMin} min</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-[#94a3b8]">Creada el</span>
+                                            <p className="font-medium text-[#0f172a] text-sm">{createdAtLabel}</p>
+                                        </div>
+                                        {reservaDetalle.notas && (
+                                            <div className="col-span-2">
+                                                <span className="text-xs text-[#94a3b8]">Notas del cliente</span>
+                                                <p className="font-medium text-[#0f172a] text-sm mt-0.5 whitespace-pre-line">{reservaDetalle.notas}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
+
+                                {/* Información de pago */}
+                                <section>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <CreditCard className="w-4 h-4 text-[#1e3a5f]" />
+                                        <h4 className="text-xs font-semibold text-[#64748b] uppercase tracking-wide">Información de pago</h4>
+                                    </div>
+                                    <div className="bg-[#f8f9fa] rounded-xl p-4 border border-[#e2e8f0] grid grid-cols-2 gap-3">
+                                        <div>
+                                            <span className="text-xs text-[#94a3b8]">Método</span>
+                                            <p className="font-semibold text-[#0f172a] text-sm capitalize">
+                                                {reservaDetalle.metodo_pago === 'efectivo' ? 'Efectivo' : reservaDetalle.metodo_pago === 'online' ? 'Online (Stripe)' : '—'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-[#94a3b8]">Estado del pago</span>
+                                            <div className="mt-0.5">
+                                                {reservaDetalle.pago_estado ? (
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${pagoColor[reservaDetalle.pago_estado] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                                        {reservaDetalle.pago_estado.charAt(0).toUpperCase() + reservaDetalle.pago_estado.slice(1)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-sm text-[#94a3b8]">—</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <span className="text-xs text-[#94a3b8]">Monto</span>
+                                            <p className="font-bold text-[#0f172a] text-base">{montoLabel}</p>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* MODAL CANCELAR */}
             {reservaCancelando && (
