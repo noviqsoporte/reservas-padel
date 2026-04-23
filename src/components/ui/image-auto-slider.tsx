@@ -1,6 +1,8 @@
 'use client';
 
-const images = [
+import { useState, useEffect } from 'react';
+
+const FALLBACK_IMAGES = [
   {
     src: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&w=800&q=80',
     alt: 'Cancha de pádel cubierta',
@@ -35,9 +37,29 @@ const images = [
   },
 ];
 
-const doubled = [...images, ...images];
+interface ImageItem {
+  src: string;
+  alt: string;
+}
 
 export default function ImageAutoSlider() {
+  const [images, setImages] = useState<ImageItem[]>(FALLBACK_IMAGES);
+
+  useEffect(() => {
+    fetch('/api/galeria')
+      .then(r => r.json())
+      .then(data => {
+        const fotos: ImageItem[] = (data.fotos || []).map((f: { imagen_url: string }) => ({
+          src: f.imagen_url,
+          alt: 'Instalaciones',
+        }));
+        if (fotos.length > 0) setImages(fotos);
+      })
+      .catch(() => {});
+  }, []);
+
+  const doubled = [...images, ...images];
+
   return (
     <section className="py-24 bg-[#f9fafb] overflow-hidden">
       <style>{`

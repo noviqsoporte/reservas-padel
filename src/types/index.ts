@@ -86,3 +86,11 @@ export interface Promocion {
     fecha_inicio?: string
     fecha_fin?: string
 }
+
+export interface FotoGaleria {
+    id: string
+    imagen_url: string
+    orden: number
+    activa: boolean
+    created_at?: string
+}

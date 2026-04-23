@@ -1,5 +1,5 @@
 import { serviceClient } from './supabase/service'
-import { Cancha, Reserva, Bloqueo, Config, Promocion } from '../types'
+import { Cancha, Reserva, Bloqueo, Config, Promocion, FotoGaleria } from '../types'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -356,6 +356,45 @@ export async function eliminarPromocion(id: string): Promise<void> {
   if (error) throw error
 }
 
+// ─── Galería ──────────────────────────────────────────────────────────────────
+
+export async function getGaleria(): Promise<FotoGaleria[]> {
+  const { data, error } = await serviceClient
+    .from('galeria')
+    .select('*')
+    .eq('activa', true)
+    .order('orden', { ascending: true })
+
+  if (error) throw error
+  return (data || []).map(mapFotoGaleria)
+}
+
+export async function agregarFotoGaleria(imagen_url: string): Promise<FotoGaleria> {
+  const { data: existing } = await serviceClient
+    .from('galeria')
+    .select('orden')
+    .eq('activa', true)
+    .order('orden', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const nextOrden = existing ? (existing.orden as number) + 1 : 1
+
+  const { data: row, error } = await serviceClient
+    .from('galeria')
+    .insert({ imagen_url, orden: nextOrden, activa: true })
+    .select()
+    .single()
+
+  if (error || !row) throw error
+  return mapFotoGaleria(row)
+}
+
+export async function eliminarFotoGaleria(id: string): Promise<void> {
+  const { error } = await serviceClient.from('galeria').delete().eq('id', id)
+  if (error) throw error
+}
+
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
 function mapCancha(row: Record<string, unknown>): Cancha {
@@ -414,5 +453,15 @@ function mapPromocion(row: Record<string, unknown>): Promocion {
     imagen_url: (row.imagen_url as string) || undefined,
     fecha_inicio: (row.fecha_inicio as string) || undefined,
     fecha_fin: (row.fecha_fin as string) || undefined,
+  }
+}
+
+function mapFotoGaleria(row: Record<string, unknown>): FotoGaleria {
+  return {
+    id: row.id as string,
+    imagen_url: row.imagen_url as string,
+    orden: row.orden as number,
+    activa: row.activa as boolean,
+    created_at: (row.created_at as string) || undefined,
   }
 }
