@@ -40,6 +40,7 @@ export default async function Home() {
         horarioApertura={config.horario_apertura}
         horarioCierre={config.horario_cierre}
         canchasActivas={canchasActivas}
+        heroImagenUrl={config.hero_imagen_url}
       />
 
       <CanchasSection canchas={canchas} />

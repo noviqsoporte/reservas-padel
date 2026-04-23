@@ -48,6 +48,7 @@ export interface Config {
     instagram: string
     horas_pico?: string
     dias_pico?: string
+    hero_imagen_url?: string
 }
 
 export interface SlotHorario {

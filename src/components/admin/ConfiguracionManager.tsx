@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, ImageIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Image from "next/image";
 import { Config } from "@/types";
 
 interface ConfiguracionManagerProps {
@@ -31,6 +32,9 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
     const [form, setForm] = useState<Config>(initialConfig);
     const [loading, setLoading] = useState(false);
     const [guardado, setGuardado] = useState(false);
+    const [archivoHero, setArchivoHero] = useState<File | null>(null);
+    const [previewHero, setPreviewHero] = useState<string | null>(initialConfig.hero_imagen_url || null);
+    const [subiendoHero, setSubiendoHero] = useState(false);
 
     const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -79,6 +83,34 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
         }));
     };
 
+    const handleHeroFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            toast.error("Solo se permiten imágenes");
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("La imagen no puede exceder los 5MB");
+            return;
+        }
+        setArchivoHero(file);
+        setPreviewHero(URL.createObjectURL(file));
+    };
+
+    const uploadToCloudinary = async (file: File): Promise<string> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+        const res = await fetch(
+            `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+            { method: 'POST', body: formData }
+        );
+        if (!res.ok) throw new Error("Error subiendo imagen a Cloudinary");
+        const data = await res.json();
+        return data.secure_url;
+    };
+
     const handleGuardar = async () => {
         // Basic validation
         if (!form.negocio_nombre.trim()) {
@@ -86,26 +118,43 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
             return;
         }
 
+        let heroUrl = form.hero_imagen_url;
+
+        if (archivoHero) {
+            setSubiendoHero(true);
+            try {
+                heroUrl = await uploadToCloudinary(archivoHero);
+                setArchivoHero(null);
+                setPreviewHero(heroUrl);
+            } catch {
+                toast.error("Error al subir la imagen del hero");
+                setSubiendoHero(false);
+                return;
+            }
+            setSubiendoHero(false);
+        }
+
+        const formToSave = { ...form, hero_imagen_url: heroUrl };
         setLoading(true);
 
         try {
             // Create updates promise array for each key
             const updates = [];
-            const keys = Object.keys(form) as Array<keyof Config>;
+            const keys = Object.keys(formToSave) as Array<keyof Config>;
 
             for (const key of keys) {
-                let valueStr = form[key];
+                let valueStr = formToSave[key];
 
                 // Handle array formatting
                 if (key === 'dias_operacion') {
-                    valueStr = (form[key] as string[]).join(', ');
+                    valueStr = (formToSave[key] as string[]).join(', ');
                 }
 
                 updates.push(
                     fetch('/api/config', {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ clave: key, valor: typeof valueStr === 'string' ? valueStr : String(valueStr) })
+                        body: JSON.stringify({ clave: key, valor: typeof valueStr === 'string' ? valueStr : String(valueStr ?? '') })
                     })
                 );
             }
@@ -115,6 +164,7 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
             const allOk = results.every(res => res.ok);
 
             if (allOk) {
+                setForm(formToSave);
                 setGuardado(true);
                 toast.success("Configuración guardada");
                 setTimeout(() => setGuardado(false), 2000);
@@ -307,6 +357,60 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
                             <Plus className="w-4 h-4" />
                             Agregar rango
                         </button>
+                    )}
+                </div>
+            </div>
+
+            {/* SECCIÓN 5: Multimedia */}
+            <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 mb-6 shadow-sm">
+                <h2 className="font-bold text-[#0f172a] text-lg">Multimedia</h2>
+                <p className="text-sm text-[#64748b] mt-1">Foto principal que aparece como fondo en el hero de la landing</p>
+
+                <div className="mt-6">
+                    {previewHero ? (
+                        <div className="relative w-full h-48 rounded-xl overflow-hidden border border-[#e2e8f0] mb-4">
+                            <Image
+                                src={previewHero}
+                                alt="Hero preview"
+                                fill
+                                className="object-cover"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPreviewHero(null);
+                                    setArchivoHero(null);
+                                    setForm(f => ({ ...f, hero_imagen_url: undefined }));
+                                }}
+                                className="absolute top-2 right-2 bg-white/90 hover:bg-white rounded-full p-1.5 shadow transition-colors"
+                            >
+                                <X className="w-4 h-4 text-[#64748b]" />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-[#e2e8f0] rounded-xl text-[#94a3b8] mb-4">
+                            <ImageIcon className="w-8 h-8 mb-2" />
+                            <span className="text-sm">Sin imagen configurada</span>
+                        </div>
+                    )}
+
+                    <label className="flex items-center gap-2 cursor-pointer w-fit">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleHeroFileChange}
+                            disabled={subiendoHero}
+                        />
+                        <span className="bg-[#f1f5f9] hover:bg-[#e2e8f0] text-[#0f172a] text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                            {subiendoHero ? 'Subiendo...' : archivoHero ? 'Cambiar imagen' : 'Subir imagen'}
+                        </span>
+                        <span className="text-xs text-[#94a3b8]">JPG, PNG o WebP · máx. 5 MB</span>
+                    </label>
+                    {archivoHero && (
+                        <p className="text-xs text-[#0057FF] mt-2">
+                            Imagen seleccionada: {archivoHero.name} — se subirá al guardar
+                        </p>
                     )}
                 </div>
             </div>

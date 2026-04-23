@@ -37,6 +37,7 @@ export async function getConfig(): Promise<Config> {
     instagram: data.instagram || '',
     horas_pico: data.horas_pico || '',
     dias_pico: data.dias_pico || '',
+    hero_imagen_url: (data.hero_imagen_url as string) || undefined,
   }
 }
 

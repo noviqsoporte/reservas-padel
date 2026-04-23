@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 interface HeroSectionProps {
     nombre: string;
@@ -9,6 +10,7 @@ interface HeroSectionProps {
     horarioApertura: string;
     horarioCierre: string;
     canchasActivas: number;
+    heroImagenUrl?: string;
 }
 
 function useCountUp(target: number, inView: boolean, duration = 1400) {
@@ -98,7 +100,7 @@ function HeroPaddle() {
     );
 }
 
-export default function HeroSection({ nombre, descripcion, horarioApertura, horarioCierre, canchasActivas }: HeroSectionProps) {
+export default function HeroSection({ nombre, descripcion, horarioApertura, horarioCierre, canchasActivas, heroImagenUrl }: HeroSectionProps) {
     const statsRef = useRef<HTMLDivElement>(null);
     const [statsInView, setStatsInView] = useState(false);
 
@@ -114,6 +116,101 @@ export default function HeroSection({ nombre, descripcion, horarioApertura, hora
     }, []);
 
     const canchasCount = useCountUp(canchasActivas, statsInView);
+
+    if (heroImagenUrl) {
+        return (
+            <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+                {/* Background image */}
+                <Image
+                    src={heroImagenUrl}
+                    alt={`${nombre} hero`}
+                    fill
+                    className="object-cover"
+                    priority
+                    sizes="100vw"
+                />
+                {/* Dark overlay */}
+                <div className="absolute inset-0 bg-black/55" />
+
+                <div className="relative z-10 max-w-6xl mx-auto px-6 w-full py-20">
+                    <div className="max-w-2xl">
+                        <motion.div
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                            className="mb-6 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 w-fit"
+                        >
+                            <span className="text-white/90 text-xs font-medium">
+                                Reservas online · Disponibilidad en tiempo real
+                            </span>
+                        </motion.div>
+
+                        <motion.h1
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.55, delay: 0.18 }}
+                            className="text-5xl md:text-6xl font-bold mb-4 tracking-tight leading-tight text-white"
+                        >
+                            <span className="block mb-2">{nombre}</span>
+                            <span className="block text-[#a8d832]">Reserva tu cancha</span>
+                        </motion.h1>
+
+                        <motion.p
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.28 }}
+                            className="text-white/80 text-lg mt-4 max-w-md leading-relaxed"
+                        >
+                            {descripcion}
+                        </motion.p>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.38 }}
+                            className="flex flex-col sm:flex-row gap-3 mt-8 w-full sm:w-auto"
+                        >
+                            <a
+                                href="#reservar"
+                                className="btn-shimmer bg-white text-[#0d3461] font-semibold px-8 py-3.5 rounded-lg hover:bg-white/90 transition-colors shadow-sm text-center"
+                            >
+                                Reservar ahora
+                            </a>
+                            <a
+                                href="#canchas"
+                                className="bg-transparent text-white font-semibold px-8 py-3.5 rounded-lg border border-white/50 hover:bg-white/10 transition-all duration-200 text-center"
+                            >
+                                Ver canchas
+                            </a>
+                        </motion.div>
+
+                        <motion.div
+                            ref={statsRef}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.5 }}
+                            className="flex items-center mt-12 pt-8 border-t border-white/20 gap-8"
+                        >
+                            <div className="flex flex-col">
+                                <span className="text-2xl font-bold text-white">{canchasCount}</span>
+                                <span className="text-xs text-white/60 font-medium uppercase tracking-wide">Canchas</span>
+                            </div>
+                            <div className="w-px h-8 bg-white/20" />
+                            <div className="flex flex-col">
+                                <span className="text-2xl font-bold text-white">{horarioApertura}–{horarioCierre}</span>
+                                <span className="text-xs text-white/60 font-medium uppercase tracking-wide">Horario</span>
+                            </div>
+                            <div className="w-px h-8 bg-white/20" />
+                            <div className="flex flex-col">
+                                <span className="text-2xl font-bold text-white">&lt; 60 seg</span>
+                                <span className="text-xs text-white/60 font-medium uppercase tracking-wide">Reserva</span>
+                            </div>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="relative min-h-[90vh] flex items-center bg-white overflow-visible">
