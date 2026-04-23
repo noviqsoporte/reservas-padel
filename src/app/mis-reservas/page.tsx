@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useSession } from "@/hooks/useSession";
-import { LogOut, Calendar, Clock, MapPin } from "lucide-react";
+import { LogOut, Calendar, Clock, MapPin, X, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
 interface ReservaItem {
@@ -30,8 +30,16 @@ const estadoColors: Record<string, string> = {
 export default function MisReservasPage() {
     const { user, profile, loading, signOut } = useSession();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [reservas, setReservas] = useState<ReservaItem[]>([]);
     const [loadingReservas, setLoadingReservas] = useState(true);
+    const [showBanner, setShowBanner] = useState(searchParams.get("pago") === "exitoso");
+
+    useEffect(() => {
+        if (!showBanner) return;
+        const timer = setTimeout(() => setShowBanner(false), 5000);
+        return () => clearTimeout(timer);
+    }, [showBanner]);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -79,6 +87,20 @@ export default function MisReservasPage() {
                     </div>
                 </div>
             </header>
+
+            {showBanner && (
+                <div className="bg-green-50 border-b border-green-200">
+                    <div className="max-w-3xl mx-auto px-6 py-3 flex items-center gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                        <p className="text-sm text-green-800 font-medium flex-1">
+                            ¡Pago confirmado! Tu reserva ha sido registrada correctamente.
+                        </p>
+                        <button onClick={() => setShowBanner(false)} className="text-green-600 hover:text-green-800 transition-colors">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <main className="max-w-3xl mx-auto px-6 py-10">
                 <h1 className="text-2xl font-bold text-[#0f172a] mb-2">Mis reservas</h1>

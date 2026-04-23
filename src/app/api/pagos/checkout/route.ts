@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         },
       ],
       customer_email: email,
-      success_url: `${baseUrl}/reserva/confirmada?session_id={CHECKOUT_SESSION_ID}&reserva_id=${reserva_id}`,
+      success_url: `${baseUrl}/mis-reservas?pago=exitoso`,
       cancel_url: `${baseUrl}/?cancelado=true`,
       metadata: { reserva_id },
       expires_at: expiresAt,
