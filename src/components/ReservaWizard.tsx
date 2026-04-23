@@ -6,7 +6,7 @@ import { es } from "date-fns/locale";
 import { toast } from "react-hot-toast";
 import { CheckCircle, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Cancha, SlotHorario } from "@/types";
+import { Cancha, SlotHorario, Promocion } from "@/types";
 import { useSession } from "@/hooks/useSession";
 import { createClient } from "@/lib/supabase/client";
 
@@ -48,6 +48,8 @@ export default function ReservaWizard() {
     const [loadingSubmit, setLoadingSubmit] = useState<boolean>(false);
     const [guardarDatos, setGuardarDatos] = useState(false);
     const [metodoPago, setMetodoPago] = useState<'efectivo' | 'online' | null>(null);
+    const [promociones, setPromociones] = useState<Promocion[]>([]);
+    const [promocionSeleccionada, setPromocionSeleccionada] = useState<Promocion | null>(null);
 
     const [formData, setFormData] = useState({ nombre: "", telefono: "", email: "", notas: "" });
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -111,6 +113,19 @@ export default function ReservaWizard() {
         }
         fetchCanchas();
     }, []);
+
+    useEffect(() => {
+        fetch("/api/promociones?activas=true")
+            .then((r) => r.ok ? r.json() : null)
+            .then((data) => { if (data?.promociones) setPromociones(data.promociones); })
+            .catch(() => {});
+    }, []);
+
+    const precioOriginal = slotSeleccionado?.precio ?? canchaSeleccionada?.precio ?? 0;
+    const montoDescuento = promocionSeleccionada
+        ? Math.round(precioOriginal * (promocionSeleccionada.descuento / 100))
+        : 0;
+    const precioFinal = precioOriginal - montoDescuento;
 
     const today = new Date().toISOString().split("T")[0];
     const maxDate = addDays(new Date(), 30).toISOString().split("T")[0];
@@ -197,7 +212,7 @@ export default function ReservaWizard() {
                     email: formData.email,
                     notas: formData.notas,
                     metodo_pago: metodoPago,
-                    monto: slotSeleccionado.precio ?? canchaSeleccionada.precio,
+                    monto: precioFinal,
                     duracion,
                     ...(profileId ? { profile_id: profileId } : {}),
                 }),
@@ -233,7 +248,7 @@ export default function ReservaWizard() {
                             fecha,
                             hora_inicio: slotSeleccionado.hora_inicio,
                             hora_fin: slotSeleccionado.hora_fin,
-                            monto: slotSeleccionado.precio ?? canchaSeleccionada.precio,
+                            monto: precioFinal,
                             email: formData.email,
                             nombre: formData.nombre,
                         }),
@@ -278,6 +293,7 @@ export default function ReservaWizard() {
         setFormErrors({});
         setMetodoPago(null);
         setGuardarDatos(false);
+        setPromocionSeleccionada(null);
     };
 
     const duracionLabel = DURACIONES.find((d) => d.minutos === duracion)?.label ?? `${duracion}min`;
@@ -638,6 +654,48 @@ export default function ReservaWizard() {
                                             />
                                         </div>
 
+                                        {/* Selector de promociones */}
+                                        {promociones.length > 0 && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-[#0f172a] mb-2">
+                                                    Promociones disponibles
+                                                </label>
+                                                <div className="space-y-2">
+                                                    {promociones.map((promo) => {
+                                                        const isActive = promocionSeleccionada?.id === promo.id;
+                                                        return (
+                                                            <button
+                                                                key={promo.id}
+                                                                type="button"
+                                                                onClick={() => setPromocionSeleccionada(isActive ? null : promo)}
+                                                                className={`w-full text-left flex items-center justify-between border-2 rounded-xl px-4 py-3 transition-all ${
+                                                                    isActive
+                                                                        ? "border-green-500 bg-green-50"
+                                                                        : "border-[#e2e8f0] hover:border-green-400"
+                                                                }`}
+                                                            >
+                                                                <div>
+                                                                    <span className={`block text-sm font-semibold ${isActive ? "text-green-700" : "text-[#0f172a]"}`}>
+                                                                        {promo.titulo}
+                                                                    </span>
+                                                                    {promo.descripcion && (
+                                                                        <span className="block text-xs text-[#64748b] mt-0.5">{promo.descripcion}</span>
+                                                                    )}
+                                                                </div>
+                                                                <span className={`ml-3 shrink-0 text-sm font-bold px-2.5 py-1 rounded-full ${
+                                                                    isActive
+                                                                        ? "bg-green-500 text-white"
+                                                                        : "bg-green-100 text-green-700"
+                                                                }`}>
+                                                                    -{promo.descuento}%
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Checkbox guardar datos — solo si no hay sesión */}
                                         {!user && (
                                             <label className="flex items-start gap-3 cursor-pointer group">
@@ -740,21 +798,35 @@ export default function ReservaWizard() {
                                                 </div>
                                             ))}
 
-                                            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-[#e2e8f0]">
-                                                <div className="flex items-center gap-2 text-[#64748b]">
-                                                    <span>💰</span>
-                                                    <span>Total:</span>
-                                                    {slotSeleccionado.es_pico && (
-                                                        <span className="text-[9px] font-bold bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">
-                                                            Hora pico
-                                                        </span>
-                                                    )}
+                                            <div className="bg-white p-3 rounded-xl border border-[#e2e8f0] space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-2 text-[#64748b]">
+                                                        <span>💰</span>
+                                                        <span>Subtotal:</span>
+                                                        {slotSeleccionado.es_pico && (
+                                                            <span className="text-[9px] font-bold bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">
+                                                                Hora pico
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span className={`font-semibold text-[#0f172a] ${promocionSeleccionada ? "line-through text-[#94a3b8]" : ""}`}>
+                                                        {precioOriginal > 0 ? `$${precioOriginal}` : "A confirmar"}
+                                                    </span>
                                                 </div>
-                                                <span className="font-bold text-[#0057FF] text-lg">
-                                                    {slotSeleccionado.precio !== undefined && slotSeleccionado.precio > 0
-                                                        ? `$${slotSeleccionado.precio}`
-                                                        : canchaSeleccionada.precio > 0 ? `$${canchaSeleccionada.precio}` : "A confirmar"}
-                                                </span>
+                                                {promocionSeleccionada && (
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-sm text-green-600 font-medium">
+                                                            -{promocionSeleccionada.descuento}% {promocionSeleccionada.titulo}
+                                                        </span>
+                                                        <span className="text-sm font-semibold text-green-600">-${montoDescuento}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between items-center pt-1 border-t border-[#e2e8f0]">
+                                                    <span className="font-bold text-[#0f172a]">Total:</span>
+                                                    <span className="font-bold text-[#0057FF] text-lg">
+                                                        {precioFinal > 0 ? `$${precioFinal}` : "A confirmar"}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
 

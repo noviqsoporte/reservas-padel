@@ -321,7 +321,11 @@ export async function crearPromocion(data: Omit<Promocion, 'id'>): Promise<Promo
     .select()
     .single()
 
-  if (error || !row) throw error
+  if (error) {
+    console.error('[crearPromocion] Supabase error:', JSON.stringify(error))
+    throw error
+  }
+  if (!row) throw new Error('crearPromocion: insert returned no row')
   return mapPromocion(row)
 }
 
