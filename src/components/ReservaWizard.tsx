@@ -754,15 +754,6 @@ export default function ReservaWizard() {
                                             </button>
                                         </div>
 
-                                        {/* Banner aviso pago online sin sesión */}
-                                        {metodoPago === 'online' && !user && (
-                                            <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mt-3">
-                                                <span className="text-base mt-0.5">⚠️</span>
-                                                <p className="text-sm text-amber-800">
-                                                    Para pagar en línea necesitas una cuenta. Al confirmar te enviaremos un link de acceso a tu correo.
-                                                </p>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
 
@@ -837,7 +828,7 @@ export default function ReservaWizard() {
                                         </p>
 
                                         <button
-                                            onClick={user ? handleSubmit : handleConfirmarConLogin}
+                                            onClick={handleSubmit}
                                             disabled={loadingSubmit || !metodoPago}
                                             className={`btn-shimmer w-full py-4 rounded-xl font-bold flex items-center justify-center transition-colors ${
                                                 loadingSubmit
@@ -860,19 +851,6 @@ export default function ReservaWizard() {
                                             )}
                                         </button>
 
-                                        {!user && metodoPago && (
-                                            <p className="text-center mt-3 text-sm text-[#94a3b8]">
-                                                ¿No quieres crear cuenta?{" "}
-                                                <button
-                                                    type="button"
-                                                    onClick={handleSubmit}
-                                                    disabled={loadingSubmit}
-                                                    className="text-[#64748b] hover:text-[#0057FF] underline transition-colors"
-                                                >
-                                                    Continuar sin cuenta →
-                                                </button>
-                                            </p>
-                                        )}
                                     </div>
                                 </div>
                             </div>
