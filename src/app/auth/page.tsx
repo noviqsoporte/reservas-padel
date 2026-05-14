@@ -45,10 +45,14 @@ function AuthFormWithTab({
     const next = searchParams.get("next");
 
     const [registerStep, setRegisterStep] = useState<"form" | "otp">("form");
+    const [loginStep, setLoginStep] = useState<"form" | "otp">("form");
     const [formData, setFormData] = useState({ nombre: "", telefono: "", email: "" });
+    const [loginEmail, setLoginEmail] = useState("");
+    const [loginNotFound, setLoginNotFound] = useState(false);
     const [otpCode, setOtpCode] = useState("");
     const [loading, setLoading] = useState(false);
     const [loadingGoogle, setLoadingGoogle] = useState(false);
+    const [loadingLogin, setLoadingLogin] = useState(false);
     const [error, setError] = useState("");
 
     const handleGoogleSignIn = async () => {
@@ -63,6 +67,7 @@ function AuthFormWithTab({
         setLoadingGoogle(false);
     };
 
+    // Register: send OTP (shouldCreateUser: true)
     const sendOtp = async () => {
         setLoading(true);
         setError("");
@@ -79,9 +84,46 @@ function AuthFormWithTab({
         });
         setLoading(false);
         if (authError) {
-            setError("Hubo un error al enviar el código. Intenta de nuevo.");
+            const msg = authError.message?.toLowerCase() ?? "";
+            if (msg.includes("already registered") || authError.status === 400) {
+                setError("Este correo ya tiene una cuenta. Inicia sesión en su lugar.");
+                setTab("login");
+                setRegisterStep("form");
+                setOtpCode("");
+            } else {
+                setError("Hubo un error al enviar el código. Intenta de nuevo.");
+            }
         } else {
             setRegisterStep("otp");
+        }
+    };
+
+    // Login: send OTP (shouldCreateUser: false)
+    const sendLoginOtp = async () => {
+        setLoadingLogin(true);
+        setError("");
+        setLoginNotFound(false);
+        const supabase = createClient();
+        const { error: authError } = await supabase.auth.signInWithOtp({
+            email: loginEmail.trim().toLowerCase(),
+            options: { shouldCreateUser: false },
+        });
+        setLoadingLogin(false);
+        if (authError) {
+            const msg = authError.message?.toLowerCase() ?? "";
+            if (
+                authError.status === 400 ||
+                authError.status === 422 ||
+                msg.includes("not found") ||
+                msg.includes("no user") ||
+                msg.includes("invalid")
+            ) {
+                setLoginNotFound(true);
+            } else {
+                setError("Hubo un error al enviar el código. Intenta de nuevo.");
+            }
+        } else {
+            setLoginStep("otp");
         }
     };
 
@@ -90,13 +132,19 @@ function AuthFormWithTab({
         await sendOtp();
     };
 
+    const handleLoginOtpSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await sendLoginOtp();
+    };
+
     const handleVerifyOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError("");
         const supabase = createClient();
+        const email = tab === "login" ? loginEmail : formData.email;
         const { error: verifyError } = await supabase.auth.verifyOtp({
-            email: formData.email.trim().toLowerCase(),
+            email: email.trim().toLowerCase(),
             token: otpCode.trim(),
             type: "email",
         });
@@ -111,22 +159,28 @@ function AuthFormWithTab({
     const switchToLogin = () => {
         setTab("login");
         setRegisterStep("form");
-        setError("");
+        setLoginStep("form");
         setOtpCode("");
+        setLoginNotFound(false);
+        // keep error so Fix 1 message shows in login tab
     };
 
     const switchToRegister = () => {
         setTab("register");
         setRegisterStep("form");
+        setLoginStep("form");
         setError("");
         setOtpCode("");
+        setLoginNotFound(false);
     };
+
+    const activeOtpEmail = tab === "login" ? loginEmail : formData.email;
 
     return (
         <AnimatePresence mode="wait">
-            {tab === "login" ? (
+            {tab === "login" && loginStep === "form" ? (
                 <motion.div
-                    key="login"
+                    key="login-form"
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 12 }}
@@ -141,6 +195,12 @@ function AuthFormWithTab({
                         </div>
                     )}
 
+                    {error && (
+                        <p className="text-amber-700 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                            {error}
+                        </p>
+                    )}
+
                     <button
                         type="button"
                         onClick={handleGoogleSignIn}
@@ -151,7 +211,52 @@ function AuthFormWithTab({
                         Continuar con Google
                     </button>
 
-                    <div className="flex items-center gap-3 my-6">
+                    <div className="flex items-center gap-3 my-5">
+                        <div className="flex-1 h-px bg-[#e2e8f0]" />
+                        <span className="text-xs text-[#94a3b8] whitespace-nowrap">o continúa con tu correo</span>
+                        <div className="flex-1 h-px bg-[#e2e8f0]" />
+                    </div>
+
+                    <form onSubmit={handleLoginOtpSubmit} className="space-y-3">
+                        <div className="relative">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
+                            <input
+                                type="email"
+                                value={loginEmail}
+                                onChange={(e) => { setLoginEmail(e.target.value); setLoginNotFound(false); setError(""); }}
+                                placeholder="tu@email.com"
+                                required
+                                className={inputClass}
+                            />
+                        </div>
+
+                        {loginNotFound && (
+                            <div className="text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 space-y-2">
+                                <p className="text-amber-700">
+                                    No encontramos una cuenta con ese correo. ¿Quieres crear una?
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={switchToRegister}
+                                    className="text-[#0057FF] font-medium hover:underline"
+                                >
+                                    Crear cuenta →
+                                </button>
+                            </div>
+                        )}
+
+                        {error && !loginNotFound && (
+                            <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                                {error}
+                            </p>
+                        )}
+
+                        <button type="submit" disabled={loadingLogin} className={btnPrimary}>
+                            {loadingLogin ? <><Spinner /> Enviando...</> : "Enviar código de acceso"}
+                        </button>
+                    </form>
+
+                    <div className="flex items-center gap-3 my-5">
                         <div className="flex-1 h-px bg-[#e2e8f0]" />
                         <span className="text-xs text-[#94a3b8] whitespace-nowrap">¿No tienes cuenta?</span>
                         <div className="flex-1 h-px bg-[#e2e8f0]" />
@@ -164,6 +269,71 @@ function AuthFormWithTab({
                     >
                         Crear cuenta
                     </button>
+                </motion.div>
+            ) : tab === "login" && loginStep === "otp" ? (
+                <motion.div
+                    key="login-otp"
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <div className="text-center mb-6">
+                        <div className="w-14 h-14 bg-[#eff6ff] rounded-full flex items-center justify-center mx-auto mb-4">
+                            <KeyRound className="w-7 h-7 text-[#0057FF]" />
+                        </div>
+                        <p className="text-sm text-[#64748b] leading-relaxed">
+                            Ingresa el código que enviamos a{" "}
+                            <strong className="text-[#0f172a]">{activeOtpEmail}</strong>
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleVerifyOtp} className="space-y-4">
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                            placeholder="000000"
+                            maxLength={6}
+                            required
+                            autoFocus
+                            className="w-full border border-[#e2e8f0] rounded-xl px-4 py-4 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/20 text-[#0f172a] placeholder:text-[#94a3b8] transition-all bg-white text-center text-2xl font-bold tracking-[0.4em]"
+                        />
+
+                        {error && (
+                            <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
+                                {error}
+                            </p>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={loading || otpCode.length < 6}
+                            className={btnPrimary}
+                        >
+                            {loading ? <><Spinner /> Verificando...</> : "Verificar código"}
+                        </button>
+                    </form>
+
+                    <div className="flex flex-col items-center gap-3 mt-5">
+                        <button
+                            type="button"
+                            onClick={sendLoginOtp}
+                            disabled={loadingLogin}
+                            className="text-sm text-[#0057FF] hover:underline disabled:opacity-50"
+                        >
+                            Reenviar código
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setLoginStep("form"); setError(""); setOtpCode(""); }}
+                            className="text-sm text-[#94a3b8] hover:text-[#0f172a] flex items-center gap-1 transition-colors"
+                        >
+                            <ArrowLeft className="w-3.5 h-3.5" />
+                            Cambiar email
+                        </button>
+                    </div>
                 </motion.div>
             ) : registerStep === "form" ? (
                 <motion.div
@@ -250,7 +420,7 @@ function AuthFormWithTab({
                 </motion.div>
             ) : (
                 <motion.div
-                    key="otp"
+                    key="register-otp"
                     initial={{ opacity: 0, scale: 0.97 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.97 }}
@@ -262,7 +432,7 @@ function AuthFormWithTab({
                         </div>
                         <p className="text-sm text-[#64748b] leading-relaxed">
                             Ingresa el código que enviamos a{" "}
-                            <strong className="text-[#0f172a]">{formData.email}</strong>
+                            <strong className="text-[#0f172a]">{activeOtpEmail}</strong>
                         </p>
                     </div>
 
