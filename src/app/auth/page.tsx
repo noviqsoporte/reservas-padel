@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, ArrowRight, Check } from "lucide-react";
+import { Check, User, Phone, Mail, ArrowLeft, KeyRound } from "lucide-react";
 
 function GoogleIcon() {
     return (
@@ -18,14 +18,37 @@ function GoogleIcon() {
     );
 }
 
-function AuthForm() {
+function Spinner() {
+    return (
+        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+    );
+}
+
+const inputClass =
+    "w-full border border-[#e2e8f0] rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/20 text-[#0f172a] placeholder:text-[#94a3b8] transition-all bg-white";
+
+const btnPrimary =
+    "w-full bg-[#0057FF] text-white font-semibold py-3.5 rounded-xl hover:bg-[#0041cc] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base";
+
+function AuthFormWithTab({
+    tab,
+    setTab,
+}: {
+    tab: "login" | "register";
+    setTab: (t: "login" | "register") => void;
+}) {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const next = searchParams.get("next");
 
-    const [email, setEmail] = useState("");
+    const [registerStep, setRegisterStep] = useState<"form" | "otp">("form");
+    const [formData, setFormData] = useState({ nombre: "", telefono: "", email: "" });
+    const [otpCode, setOtpCode] = useState("");
     const [loading, setLoading] = useState(false);
     const [loadingGoogle, setLoadingGoogle] = useState(false);
-    const [sent, setSent] = useState(false);
     const [error, setError] = useState("");
 
     const handleGoogleSignIn = async () => {
@@ -40,66 +63,73 @@ function AuthForm() {
         setLoadingGoogle(false);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!email.trim()) return;
+    const sendOtp = async () => {
         setLoading(true);
         setError("");
-
         const supabase = createClient();
-        const redirectTo = `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
         const { error: authError } = await supabase.auth.signInWithOtp({
-            email: email.trim().toLowerCase(),
-            options: { shouldCreateUser: true, emailRedirectTo: redirectTo },
+            email: formData.email.trim().toLowerCase(),
+            options: {
+                shouldCreateUser: true,
+                data: {
+                    nombre: formData.nombre.trim(),
+                    telefono: formData.telefono.trim(),
+                },
+            },
         });
-
         setLoading(false);
         if (authError) {
-            setError("Hubo un error al enviar el link. Intenta de nuevo.");
+            setError("Hubo un error al enviar el código. Intenta de nuevo.");
         } else {
-            setSent(true);
+            setRegisterStep("otp");
         }
+    };
+
+    const handleRegisterSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await sendOtp();
+    };
+
+    const handleVerifyOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+        const supabase = createClient();
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+            email: formData.email.trim().toLowerCase(),
+            token: otpCode.trim(),
+            type: "email",
+        });
+        setLoading(false);
+        if (verifyError) {
+            setError("Código incorrecto o expirado. Intenta de nuevo.");
+        } else {
+            router.push(next ?? "/");
+        }
+    };
+
+    const switchToLogin = () => {
+        setTab("login");
+        setRegisterStep("form");
+        setError("");
+        setOtpCode("");
+    };
+
+    const switchToRegister = () => {
+        setTab("register");
+        setRegisterStep("form");
+        setError("");
+        setOtpCode("");
     };
 
     return (
         <AnimatePresence mode="wait">
-            {sent ? (
+            {tab === "login" ? (
                 <motion.div
-                    key="success"
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="text-center py-4"
-                >
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-                        className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5"
-                    >
-                        <Mail className="w-8 h-8 text-green-600" />
-                    </motion.div>
-                    <h2 className="text-2xl font-bold text-[#0f172a] mb-2">¡Revisa tu correo!</h2>
-                    <p className="text-[#64748b] text-sm leading-relaxed">
-                        Te enviamos un link a{" "}
-                        <strong className="text-[#0f172a]">{email}</strong>.<br />
-                        Haz clic en él para acceder a tu cuenta.
-                    </p>
-                    <p className="text-xs text-[#94a3b8] mt-4">
-                        El link expira en 1 hora. Revisa también tu carpeta de spam.
-                    </p>
-                    <button
-                        onClick={() => { setSent(false); setEmail(""); }}
-                        className="mt-6 text-sm text-[#0057FF] hover:underline"
-                    >
-                        Usar otro correo
-                    </button>
-                </motion.div>
-            ) : (
-                <motion.div
-                    key="form"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    key="login"
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 12 }}
                     transition={{ duration: 0.2 }}
                 >
                     {next && (
@@ -111,31 +141,74 @@ function AuthForm() {
                         </div>
                     )}
 
-                    {/* Google sign-in */}
                     <button
                         type="button"
                         onClick={handleGoogleSignIn}
                         disabled={loadingGoogle}
                         className="w-full flex items-center justify-center gap-3 border border-[#e2e8f0] bg-white rounded-xl py-3.5 text-sm font-medium text-[#0f172a] hover:border-[#94a3b8] hover:shadow-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                        {loadingGoogle ? (
-                            <svg className="animate-spin w-4 h-4 text-[#64748b]" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                            </svg>
-                        ) : (
-                            <GoogleIcon />
-                        )}
+                        {loadingGoogle ? <Spinner /> : <GoogleIcon />}
                         Continuar con Google
                     </button>
 
-                    <div className="flex items-center gap-3 my-5">
+                    <div className="flex items-center gap-3 my-6">
                         <div className="flex-1 h-px bg-[#e2e8f0]" />
-                        <span className="text-xs text-[#94a3b8] whitespace-nowrap">o continúa con tu correo</span>
+                        <span className="text-xs text-[#94a3b8] whitespace-nowrap">¿No tienes cuenta?</span>
                         <div className="flex-1 h-px bg-[#e2e8f0]" />
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <button
+                        type="button"
+                        onClick={switchToRegister}
+                        className="w-full border border-[#0057FF] text-[#0057FF] font-semibold py-3.5 rounded-xl hover:bg-[#0057FF]/5 active:scale-[0.98] transition-all text-base"
+                    >
+                        Crear cuenta
+                    </button>
+                </motion.div>
+            ) : registerStep === "form" ? (
+                <motion.div
+                    key="register-form"
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -12 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-[#0f172a] mb-2">
+                                Nombre completo
+                            </label>
+                            <div className="relative">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
+                                <input
+                                    type="text"
+                                    value={formData.nombre}
+                                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                                    placeholder="Tu nombre"
+                                    required
+                                    autoFocus
+                                    className={inputClass}
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-[#0f172a] mb-2">
+                                Teléfono
+                            </label>
+                            <div className="relative">
+                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
+                                <input
+                                    type="tel"
+                                    value={formData.telefono}
+                                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                                    placeholder="+52 55 0000 0000"
+                                    required
+                                    className={inputClass}
+                                />
+                            </div>
+                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-[#0f172a] mb-2">
                                 Correo electrónico
@@ -144,12 +217,11 @@ function AuthForm() {
                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
                                 <input
                                     type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     placeholder="tu@email.com"
                                     required
-                                    autoFocus
-                                    className="w-full border border-[#e2e8f0] rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/20 text-[#0f172a] placeholder:text-[#94a3b8] transition-all bg-white"
+                                    className={inputClass}
                                 />
                             </div>
                         </div>
@@ -160,31 +232,86 @@ function AuthForm() {
                             </p>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={loading || !email.trim()}
-                            className="w-full bg-[#0057FF] text-white font-semibold py-3.5 rounded-xl hover:bg-[#0041cc] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
-                        >
-                            {loading ? (
-                                <>
-                                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                    </svg>
-                                    Enviando...
-                                </>
-                            ) : (
-                                <>
-                                    Enviar link de acceso
-                                    <ArrowRight className="w-4 h-4" />
-                                </>
-                            )}
+                        <button type="submit" disabled={loading} className={btnPrimary}>
+                            {loading ? <><Spinner /> Enviando...</> : "Crear cuenta"}
                         </button>
                     </form>
 
-                    <p className="text-xs text-[#94a3b8] text-center mt-4">
-                        Recibirás el link en menos de 1 minuto.
+                    <p className="text-sm text-[#64748b] text-center mt-5">
+                        ¿Ya tienes cuenta?{" "}
+                        <button
+                            type="button"
+                            onClick={switchToLogin}
+                            className="text-[#0057FF] hover:underline font-medium"
+                        >
+                            Inicia sesión
+                        </button>
                     </p>
+                </motion.div>
+            ) : (
+                <motion.div
+                    key="otp"
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <div className="text-center mb-6">
+                        <div className="w-14 h-14 bg-[#eff6ff] rounded-full flex items-center justify-center mx-auto mb-4">
+                            <KeyRound className="w-7 h-7 text-[#0057FF]" />
+                        </div>
+                        <p className="text-sm text-[#64748b] leading-relaxed">
+                            Ingresa el código que enviamos a{" "}
+                            <strong className="text-[#0f172a]">{formData.email}</strong>
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleVerifyOtp} className="space-y-4">
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                            placeholder="000000"
+                            maxLength={6}
+                            required
+                            autoFocus
+                            className="w-full border border-[#e2e8f0] rounded-xl px-4 py-4 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/20 text-[#0f172a] placeholder:text-[#94a3b8] transition-all bg-white text-center text-2xl font-bold tracking-[0.4em]"
+                        />
+
+                        {error && (
+                            <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
+                                {error}
+                            </p>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={loading || otpCode.length < 6}
+                            className={btnPrimary}
+                        >
+                            {loading ? <><Spinner /> Verificando...</> : "Verificar código"}
+                        </button>
+                    </form>
+
+                    <div className="flex flex-col items-center gap-3 mt-5">
+                        <button
+                            type="button"
+                            onClick={sendOtp}
+                            disabled={loading}
+                            className="text-sm text-[#0057FF] hover:underline disabled:opacity-50"
+                        >
+                            Reenviar código
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setRegisterStep("form"); setError(""); setOtpCode(""); }}
+                            className="text-sm text-[#94a3b8] hover:text-[#0f172a] flex items-center gap-1 transition-colors"
+                        >
+                            <ArrowLeft className="w-3.5 h-3.5" />
+                            Cambiar email
+                        </button>
+                    </div>
                 </motion.div>
             )}
         </AnimatePresence>
@@ -198,15 +325,15 @@ const bullets = [
 ];
 
 export default function AuthPage() {
+    const [tab, setTab] = useState<"login" | "register">("login");
+
     return (
         <div className="min-h-screen flex">
-            {/* ── Left column — 60%, dark blue, desktop only ── */}
+            {/* Left column */}
             <div className="hidden lg:flex lg:w-[60%] bg-[#0f1e3c] flex-col relative overflow-hidden">
-                {/* Decorative blobs */}
                 <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-[#0057FF]/10 pointer-events-none" />
                 <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-[#0057FF]/5 pointer-events-none" />
 
-                {/* Logo */}
                 <div className="relative px-12 pt-10">
                     <Link href="/" className="flex items-center gap-2 w-fit">
                         <span className="text-[#0057FF] font-bold text-2xl leading-none -mt-1">•</span>
@@ -214,7 +341,6 @@ export default function AuthPage() {
                     </Link>
                 </div>
 
-                {/* Hero text — centered vertically */}
                 <div className="relative flex-1 flex flex-col justify-center px-16">
                     <p className="text-[#4ade80] text-xs font-bold tracking-[0.2em] uppercase mb-5">
                         Club de Pádel
@@ -227,7 +353,6 @@ export default function AuthPage() {
                     </p>
                 </div>
 
-                {/* Bottom bullets */}
                 <div className="relative px-16 pb-14 space-y-3.5">
                     {bullets.map((b) => (
                         <div key={b} className="flex items-center gap-3">
@@ -240,9 +365,8 @@ export default function AuthPage() {
                 </div>
             </div>
 
-            {/* ── Right column — 40% desktop, full mobile ── */}
+            {/* Right column */}
             <div className="w-full lg:w-[40%] bg-[#f8faff] flex flex-col">
-                {/* Mobile-only logo */}
                 <div className="lg:hidden px-8 pt-8">
                     <Link href="/" className="flex items-center gap-2 w-fit">
                         <span className="text-[#0057FF] font-bold text-xl leading-none -mt-1">•</span>
@@ -250,20 +374,28 @@ export default function AuthPage() {
                     </Link>
                 </div>
 
-                {/* Form centered vertically */}
                 <div className="flex-1 flex items-center justify-center px-8 py-12">
                     <div className="w-full max-w-sm">
-                        <div className="mb-8">
-                            <h2 className="text-[28px] font-bold text-[#0f172a] mb-2 leading-tight">
-                                Inicia sesión
-                            </h2>
-                            <p className="text-[#64748b] text-sm leading-relaxed">
-                                Sin contraseñas. Te enviamos un link directo a tu correo.
-                            </p>
+                        {/* Tabs */}
+                        <div className="flex bg-[#e2e8f0] rounded-xl p-1 mb-8">
+                            {(["login", "register"] as const).map((t) => (
+                                <button
+                                    key={t}
+                                    type="button"
+                                    onClick={() => setTab(t)}
+                                    className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${
+                                        tab === t
+                                            ? "bg-white text-[#0f172a] shadow-sm"
+                                            : "text-[#64748b] hover:text-[#0f172a]"
+                                    }`}
+                                >
+                                    {t === "login" ? "Iniciar sesión" : "Crear cuenta"}
+                                </button>
+                            ))}
                         </div>
 
                         <Suspense fallback={null}>
-                            <AuthForm />
+                            <AuthFormWithTab tab={tab} setTab={setTab} />
                         </Suspense>
 
                         <div className="mt-10 text-center">
