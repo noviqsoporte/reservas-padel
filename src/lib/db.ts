@@ -642,3 +642,19 @@ function mapClase(row: Record<string, unknown>): Clase {
     created_at: (row.created_at as string) || undefined,
   }
 }
+
+export async function actualizarProfile(
+  userId: string,
+  data: { nombre?: string; telefono?: string }
+): Promise<void> {
+  const { error } = await serviceClient
+    .from('profiles')
+    .update({
+      ...(data.nombre ? { nombre: data.nombre } : {}),
+      ...(data.telefono ? { telefono: data.telefono } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+
+  if (error) throw error
+}

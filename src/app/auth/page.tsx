@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, User, Phone, Mail, ArrowLeft, KeyRound } from "lucide-react";
+import { Check } from "lucide-react";
 
 function GoogleIcon() {
     return (
@@ -27,33 +26,10 @@ function Spinner() {
     );
 }
 
-const inputClass =
-    "w-full border border-[#e2e8f0] rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/20 text-[#0f172a] placeholder:text-[#94a3b8] transition-all bg-white";
-
-const btnPrimary =
-    "w-full bg-[#0057FF] text-white font-semibold py-3.5 rounded-xl hover:bg-[#0041cc] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base";
-
-function AuthFormWithTab({
-    tab,
-    setTab,
-}: {
-    tab: "login" | "register";
-    setTab: (t: "login" | "register") => void;
-}) {
-    const router = useRouter();
+function AuthForm() {
     const searchParams = useSearchParams();
     const next = searchParams.get("next");
-
-    const [registerStep, setRegisterStep] = useState<"form" | "otp">("form");
-    const [loginStep, setLoginStep] = useState<"form" | "otp">("form");
-    const [formData, setFormData] = useState({ nombre: "", telefono: "", email: "" });
-    const [loginEmail, setLoginEmail] = useState("");
-    const [loginNotFound, setLoginNotFound] = useState(false);
-    const [otpCode, setOtpCode] = useState("");
-    const [loading, setLoading] = useState(false);
     const [loadingGoogle, setLoadingGoogle] = useState(false);
-    const [loadingLogin, setLoadingLogin] = useState(false);
-    const [error, setError] = useState("");
 
     const handleGoogleSignIn = async () => {
         setLoadingGoogle(true);
@@ -67,424 +43,32 @@ function AuthFormWithTab({
         setLoadingGoogle(false);
     };
 
-    // Register: send OTP (shouldCreateUser: true)
-    const sendOtp = async () => {
-        setLoading(true);
-        setError("");
-        const supabase = createClient();
-        const { error: authError } = await supabase.auth.signInWithOtp({
-            email: formData.email.trim().toLowerCase(),
-            options: {
-                shouldCreateUser: true,
-                data: {
-                    nombre: formData.nombre.trim(),
-                    telefono: formData.telefono.trim(),
-                },
-            },
-        });
-        setLoading(false);
-        if (authError) {
-            const msg = authError.message?.toLowerCase() ?? "";
-            if (msg.includes("already registered") || authError.status === 400) {
-                setError("Este correo ya tiene una cuenta. Inicia sesión en su lugar.");
-                setTab("login");
-                setRegisterStep("form");
-                setOtpCode("");
-            } else {
-                setError("Hubo un error al enviar el código. Intenta de nuevo.");
-            }
-        } else {
-            setRegisterStep("otp");
-        }
-    };
-
-    // Login: send OTP (shouldCreateUser: false)
-    const sendLoginOtp = async () => {
-        setLoadingLogin(true);
-        setError("");
-        setLoginNotFound(false);
-        const supabase = createClient();
-        const { error: authError } = await supabase.auth.signInWithOtp({
-            email: loginEmail.trim().toLowerCase(),
-            options: { shouldCreateUser: false },
-        });
-        setLoadingLogin(false);
-        if (authError) {
-            const msg = authError.message?.toLowerCase() ?? "";
-            if (
-                authError.status === 400 ||
-                authError.status === 422 ||
-                msg.includes("not found") ||
-                msg.includes("no user") ||
-                msg.includes("invalid")
-            ) {
-                setLoginNotFound(true);
-            } else {
-                setError("Hubo un error al enviar el código. Intenta de nuevo.");
-            }
-        } else {
-            setLoginStep("otp");
-        }
-    };
-
-    const handleRegisterSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        await sendOtp();
-    };
-
-    const handleLoginOtpSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        await sendLoginOtp();
-    };
-
-    const handleVerifyOtp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
-        const supabase = createClient();
-        const email = tab === "login" ? loginEmail : formData.email;
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-            email: email.trim().toLowerCase(),
-            token: otpCode.trim(),
-            type: "email",
-        });
-        setLoading(false);
-        if (verifyError) {
-            setError("Código incorrecto o expirado. Intenta de nuevo.");
-        } else {
-            router.push(next ?? "/");
-        }
-    };
-
-    const switchToLogin = () => {
-        setTab("login");
-        setRegisterStep("form");
-        setLoginStep("form");
-        setOtpCode("");
-        setLoginNotFound(false);
-        // keep error so Fix 1 message shows in login tab
-    };
-
-    const switchToRegister = () => {
-        setTab("register");
-        setRegisterStep("form");
-        setLoginStep("form");
-        setError("");
-        setOtpCode("");
-        setLoginNotFound(false);
-    };
-
-    const activeOtpEmail = tab === "login" ? loginEmail : formData.email;
-
     return (
-        <AnimatePresence mode="wait">
-            {tab === "login" && loginStep === "form" ? (
-                <motion.div
-                    key="login-form"
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 12 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    {next && (
-                        <div className="flex items-start gap-2.5 bg-[#eff6ff] border border-blue-200 rounded-xl px-4 py-3 mb-6">
-                            <span className="text-base mt-0.5">📋</span>
-                            <p className="text-sm text-blue-800">
-                                Inicia sesión para continuar con tu reserva
-                            </p>
-                        </div>
-                    )}
+        <div className="w-full max-w-sm">
+            <h2 className="text-2xl font-bold text-[#0f172a] mb-2">Inicia sesión</h2>
+            <p className="text-[#64748b] text-sm mb-8">
+                Accede con tu cuenta de Google para gestionar tus reservas.
+            </p>
 
-                    {error && (
-                        <p className="text-amber-700 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
-                            {error}
-                        </p>
-                    )}
-
-                    <button
-                        type="button"
-                        onClick={handleGoogleSignIn}
-                        disabled={loadingGoogle}
-                        className="w-full flex items-center justify-center gap-3 border border-[#e2e8f0] bg-white rounded-xl py-3.5 text-sm font-medium text-[#0f172a] hover:border-[#94a3b8] hover:shadow-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                        {loadingGoogle ? <Spinner /> : <GoogleIcon />}
-                        Continuar con Google
-                    </button>
-
-                    <div className="flex items-center gap-3 my-5">
-                        <div className="flex-1 h-px bg-[#e2e8f0]" />
-                        <span className="text-xs text-[#94a3b8] whitespace-nowrap">o continúa con tu correo</span>
-                        <div className="flex-1 h-px bg-[#e2e8f0]" />
-                    </div>
-
-                    <form onSubmit={handleLoginOtpSubmit} className="space-y-3">
-                        <div className="relative">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
-                            <input
-                                type="email"
-                                value={loginEmail}
-                                onChange={(e) => { setLoginEmail(e.target.value); setLoginNotFound(false); setError(""); }}
-                                placeholder="tu@email.com"
-                                required
-                                className={inputClass}
-                            />
-                        </div>
-
-                        {loginNotFound && (
-                            <div className="text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 space-y-2">
-                                <p className="text-amber-700">
-                                    No encontramos una cuenta con ese correo. ¿Quieres crear una?
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={switchToRegister}
-                                    className="text-[#0057FF] font-medium hover:underline"
-                                >
-                                    Crear cuenta →
-                                </button>
-                            </div>
-                        )}
-
-                        {error && !loginNotFound && (
-                            <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                                {error}
-                            </p>
-                        )}
-
-                        <button type="submit" disabled={loadingLogin} className={btnPrimary}>
-                            {loadingLogin ? <><Spinner /> Enviando...</> : "Enviar código de acceso"}
-                        </button>
-                    </form>
-
-                    <div className="flex items-center gap-3 my-5">
-                        <div className="flex-1 h-px bg-[#e2e8f0]" />
-                        <span className="text-xs text-[#94a3b8] whitespace-nowrap">¿No tienes cuenta?</span>
-                        <div className="flex-1 h-px bg-[#e2e8f0]" />
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={switchToRegister}
-                        className="w-full border border-[#0057FF] text-[#0057FF] font-semibold py-3.5 rounded-xl hover:bg-[#0057FF]/5 active:scale-[0.98] transition-all text-base"
-                    >
-                        Crear cuenta
-                    </button>
-                </motion.div>
-            ) : tab === "login" && loginStep === "otp" ? (
-                <motion.div
-                    key="login-otp"
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    <div className="text-center mb-6">
-                        <div className="w-14 h-14 bg-[#eff6ff] rounded-full flex items-center justify-center mx-auto mb-4">
-                            <KeyRound className="w-7 h-7 text-[#0057FF]" />
-                        </div>
-                        <p className="text-sm text-[#64748b] leading-relaxed">
-                            Ingresa el código que enviamos a{" "}
-                            <strong className="text-[#0f172a]">{activeOtpEmail}</strong>
-                        </p>
-                    </div>
-
-                    <form onSubmit={handleVerifyOtp} className="space-y-4">
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            value={otpCode}
-                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                            placeholder="000000"
-                            maxLength={6}
-                            required
-                            autoFocus
-                            className="w-full border border-[#e2e8f0] rounded-xl px-4 py-4 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/20 text-[#0f172a] placeholder:text-[#94a3b8] transition-all bg-white text-center text-2xl font-bold tracking-[0.4em]"
-                        />
-
-                        {error && (
-                            <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
-                                {error}
-                            </p>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={loading || otpCode.length < 6}
-                            className={btnPrimary}
-                        >
-                            {loading ? <><Spinner /> Verificando...</> : "Verificar código"}
-                        </button>
-                    </form>
-
-                    <div className="flex flex-col items-center gap-3 mt-5">
-                        <button
-                            type="button"
-                            onClick={sendLoginOtp}
-                            disabled={loadingLogin}
-                            className="text-sm text-[#0057FF] hover:underline disabled:opacity-50"
-                        >
-                            Reenviar código
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => { setLoginStep("form"); setError(""); setOtpCode(""); }}
-                            className="text-sm text-[#94a3b8] hover:text-[#0f172a] flex items-center gap-1 transition-colors"
-                        >
-                            <ArrowLeft className="w-3.5 h-3.5" />
-                            Cambiar email
-                        </button>
-                    </div>
-                </motion.div>
-            ) : registerStep === "form" ? (
-                <motion.div
-                    key="register-form"
-                    initial={{ opacity: 0, x: 12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -12 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-[#0f172a] mb-2">
-                                Nombre completo
-                            </label>
-                            <div className="relative">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
-                                <input
-                                    type="text"
-                                    value={formData.nombre}
-                                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                                    placeholder="Tu nombre"
-                                    required
-                                    autoFocus
-                                    className={inputClass}
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-[#0f172a] mb-2">
-                                Teléfono
-                            </label>
-                            <div className="relative">
-                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
-                                <input
-                                    type="tel"
-                                    value={formData.telefono}
-                                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                                    placeholder="+52 55 0000 0000"
-                                    required
-                                    className={inputClass}
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-[#0f172a] mb-2">
-                                Correo electrónico
-                            </label>
-                            <div className="relative">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="tu@email.com"
-                                    required
-                                    className={inputClass}
-                                />
-                            </div>
-                        </div>
-
-                        {error && (
-                            <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                                {error}
-                            </p>
-                        )}
-
-                        <button type="submit" disabled={loading} className={btnPrimary}>
-                            {loading ? <><Spinner /> Enviando...</> : "Crear cuenta"}
-                        </button>
-                    </form>
-
-                    <p className="text-sm text-[#64748b] text-center mt-5">
-                        ¿Ya tienes cuenta?{" "}
-                        <button
-                            type="button"
-                            onClick={switchToLogin}
-                            className="text-[#0057FF] hover:underline font-medium"
-                        >
-                            Inicia sesión
-                        </button>
+            {next && (
+                <div className="flex items-start gap-2.5 bg-[#eff6ff] border border-blue-200 rounded-xl px-4 py-3 mb-6">
+                    <span className="text-base mt-0.5">📋</span>
+                    <p className="text-sm text-blue-800">
+                        Inicia sesión para continuar con tu reserva
                     </p>
-                </motion.div>
-            ) : (
-                <motion.div
-                    key="register-otp"
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    <div className="text-center mb-6">
-                        <div className="w-14 h-14 bg-[#eff6ff] rounded-full flex items-center justify-center mx-auto mb-4">
-                            <KeyRound className="w-7 h-7 text-[#0057FF]" />
-                        </div>
-                        <p className="text-sm text-[#64748b] leading-relaxed">
-                            Ingresa el código que enviamos a{" "}
-                            <strong className="text-[#0f172a]">{activeOtpEmail}</strong>
-                        </p>
-                    </div>
-
-                    <form onSubmit={handleVerifyOtp} className="space-y-4">
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            value={otpCode}
-                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                            placeholder="000000"
-                            maxLength={6}
-                            required
-                            autoFocus
-                            className="w-full border border-[#e2e8f0] rounded-xl px-4 py-4 focus:outline-none focus:border-[#0057FF] focus:ring-2 focus:ring-[#0057FF]/20 text-[#0f172a] placeholder:text-[#94a3b8] transition-all bg-white text-center text-2xl font-bold tracking-[0.4em]"
-                        />
-
-                        {error && (
-                            <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
-                                {error}
-                            </p>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={loading || otpCode.length < 6}
-                            className={btnPrimary}
-                        >
-                            {loading ? <><Spinner /> Verificando...</> : "Verificar código"}
-                        </button>
-                    </form>
-
-                    <div className="flex flex-col items-center gap-3 mt-5">
-                        <button
-                            type="button"
-                            onClick={sendOtp}
-                            disabled={loading}
-                            className="text-sm text-[#0057FF] hover:underline disabled:opacity-50"
-                        >
-                            Reenviar código
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => { setRegisterStep("form"); setError(""); setOtpCode(""); }}
-                            className="text-sm text-[#94a3b8] hover:text-[#0f172a] flex items-center gap-1 transition-colors"
-                        >
-                            <ArrowLeft className="w-3.5 h-3.5" />
-                            Cambiar email
-                        </button>
-                    </div>
-                </motion.div>
+                </div>
             )}
-        </AnimatePresence>
+
+            <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={loadingGoogle}
+                className="w-full flex items-center justify-center gap-3 border border-[#e2e8f0] bg-white rounded-xl py-3.5 text-sm font-medium text-[#0f172a] hover:border-[#94a3b8] hover:shadow-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+                {loadingGoogle ? <Spinner /> : <GoogleIcon />}
+                Continuar con Google
+            </button>
+        </div>
     );
 }
 
@@ -495,8 +79,6 @@ const bullets = [
 ];
 
 export default function AuthPage() {
-    const [tab, setTab] = useState<"login" | "register">("login");
-
     return (
         <div className="min-h-screen flex">
             {/* Left column */}
@@ -545,38 +127,18 @@ export default function AuthPage() {
                 </div>
 
                 <div className="flex-1 flex items-center justify-center px-8 py-12">
-                    <div className="w-full max-w-sm">
-                        {/* Tabs */}
-                        <div className="flex bg-[#e2e8f0] rounded-xl p-1 mb-8">
-                            {(["login", "register"] as const).map((t) => (
-                                <button
-                                    key={t}
-                                    type="button"
-                                    onClick={() => setTab(t)}
-                                    className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-                                        tab === t
-                                            ? "bg-white text-[#0f172a] shadow-sm"
-                                            : "text-[#64748b] hover:text-[#0f172a]"
-                                    }`}
-                                >
-                                    {t === "login" ? "Iniciar sesión" : "Crear cuenta"}
-                                </button>
-                            ))}
-                        </div>
+                    <Suspense fallback={null}>
+                        <AuthForm />
+                    </Suspense>
+                </div>
 
-                        <Suspense fallback={null}>
-                            <AuthFormWithTab tab={tab} setTab={setTab} />
-                        </Suspense>
-
-                        <div className="mt-10 text-center">
-                            <Link
-                                href="/"
-                                className="text-sm text-[#94a3b8] hover:text-[#0057FF] transition-colors"
-                            >
-                                ← Volver al inicio
-                            </Link>
-                        </div>
-                    </div>
+                <div className="pb-10 text-center">
+                    <Link
+                        href="/"
+                        className="text-sm text-[#94a3b8] hover:text-[#0057FF] transition-colors"
+                    >
+                        ← Volver al inicio
+                    </Link>
                 </div>
             </div>
         </div>

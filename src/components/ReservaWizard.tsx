@@ -234,13 +234,17 @@ export default function ReservaWizard() {
                         { email: formData.email, fuente: "reserva" },
                         { onConflict: "email" }
                     );
+                }
 
-                    if (guardarDatos) {
-                        await supabase.auth.signInWithOtp({
-                            email: formData.email,
-                            options: { shouldCreateUser: true },
-                        });
-                    }
+                if (user && guardarDatos) {
+                    await fetch("/api/profile", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            nombre: formData.nombre,
+                            telefono: formData.telefono,
+                        }),
+                    });
                 }
 
                 if (metodoPago === 'online' && reservaId && canchaSeleccionada && slotSeleccionado) {
@@ -701,19 +705,16 @@ export default function ReservaWizard() {
                                             </div>
                                         )}
 
-                                        {/* Checkbox guardar datos — solo si no hay sesión */}
-                                        {!user && (
-                                            <label className="flex items-start gap-3 cursor-pointer group">
+                                        {/* Checkbox guardar datos — solo si hay sesión activa */}
+                                        {user && (
+                                            <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600">
                                                 <input
                                                     type="checkbox"
                                                     checked={guardarDatos}
                                                     onChange={(e) => setGuardarDatos(e.target.checked)}
-                                                    className="mt-0.5 w-4 h-4 rounded border-[#e2e8f0] text-[#0057FF] focus:ring-[#0057FF] cursor-pointer"
+                                                    className="w-4 h-4 rounded border-gray-300"
                                                 />
-                                                <span className="text-sm text-[#64748b] group-hover:text-[#0f172a] transition-colors">
-                                                    Guardar mis datos para futuras reservas
-                                                    <span className="block text-xs text-[#94a3b8] mt-0.5">Recibirás un link por email para activar tu cuenta</span>
-                                                </span>
+                                                Actualizar mis datos para futuras reservas
                                             </label>
                                         )}
                                     </div>
