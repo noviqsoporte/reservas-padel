@@ -4,7 +4,8 @@ import {
     BarChart3,
     DollarSign,
     Activity,
-    XCircle
+    XCircle,
+    UserX,
 } from "lucide-react";
 
 interface DashboardKPIsProps {
@@ -15,9 +16,11 @@ interface DashboardKPIsProps {
     cancelacionesMes: number;
     ocupacionHoy: number;
     canchasActivas: number;
+    noShowsMes: number;
 }
 
 export default function DashboardKPIs(props: DashboardKPIsProps) {
+    const { noShowsMes } = props;
     return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
@@ -111,6 +114,20 @@ export default function DashboardKPIs(props: DashboardKPIsProps) {
                 </div>
                 <div className="text-3xl font-bold text-[#0f172a] mt-3">{props.cancelacionesMes}</div>
                 <div className="text-sm text-[#64748b] mt-1">este mes</div>
+            </div>
+
+            {/* 7. No shows */}
+            <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-orange-50 text-orange-600">
+                        <UserX className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs text-[#64748b] font-medium uppercase tracking-wide">
+                        No shows este mes
+                    </span>
+                </div>
+                <div className="text-3xl font-bold text-orange-600 mt-3">{noShowsMes}</div>
+                <div className="text-sm text-[#64748b] mt-1">clientes que no llegaron</div>
             </div>
 
         </div>

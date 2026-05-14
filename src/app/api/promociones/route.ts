@@ -6,7 +6,8 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const soloActivas = req.nextUrl.searchParams.get('activas') === 'true'
-    const promociones = soloActivas ? await getPromocionesActivas() : await getPromociones()
+    const fecha = req.nextUrl.searchParams.get('fecha') ?? undefined
+    const promociones = soloActivas ? await getPromocionesActivas(fecha) : await getPromociones()
     return NextResponse.json({ promociones })
   } catch (error) {
     console.error('[GET /api/promociones]', error)

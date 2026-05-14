@@ -36,6 +36,7 @@ export default async function AdminDashboard() {
 
     const reservasMes = reservas.filter(r => r.fecha.startsWith(currentMonth) && r.estado !== 'Cancelada');
     const cancelacionesMes = reservas.filter(r => r.fecha.startsWith(currentMonth) && r.estado === 'Cancelada');
+    const noShowsMes = reservas.filter(r => r.fecha.startsWith(currentMonth) && r.estado === 'No show');
     const canchasActivas = canchas.filter(c => c.activa);
 
     const ingresosMes = reservasMes.reduce((total, r) => {
@@ -59,6 +60,7 @@ export default async function AdminDashboard() {
                 cancelacionesMes={cancelacionesMes.length}
                 ocupacionHoy={ocupacionHoy}
                 canchasActivas={canchasActivas.length}
+                noShowsMes={noShowsMes.length}
             />
             <ReservasHoy reservas={reservasHoy} canchas={canchas} />
         </div>

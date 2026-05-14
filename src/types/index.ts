@@ -27,6 +27,8 @@ export interface Reserva {
     pago_estado?: 'pendiente' | 'pagado' | 'fallido'
     stripe_session_id?: string
     monto_pagado?: number
+    promocion_id?: string
+    descuento_aplicado?: number
     created_at?: string
 }
 
@@ -85,6 +87,21 @@ export interface Promocion {
     imagen_url?: string
     fecha_inicio?: string
     fecha_fin?: string
+}
+
+export interface Clase {
+    id: string
+    titulo: string
+    descripcion?: string
+    instructor?: string
+    fecha: string
+    hora_inicio: string
+    hora_fin: string
+    cupo_maximo: number
+    cupo_disponible: number
+    precio: number
+    activa: boolean
+    created_at?: string
 }
 
 export interface FotoGaleria {

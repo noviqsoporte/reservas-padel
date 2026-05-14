@@ -115,11 +115,12 @@ export default function ReservaWizard() {
     }, []);
 
     useEffect(() => {
-        fetch("/api/promociones?activas=true")
+        if (!fecha) return;
+        fetch(`/api/promociones?activas=true&fecha=${fecha}`)
             .then((r) => r.ok ? r.json() : null)
             .then((data) => { if (data?.promociones) setPromociones(data.promociones); })
             .catch(() => {});
-    }, []);
+    }, [fecha]);
 
     const precioOriginal = slotSeleccionado?.precio ?? canchaSeleccionada?.precio ?? 0;
     const montoDescuento = promocionSeleccionada
@@ -215,6 +216,10 @@ export default function ReservaWizard() {
                     monto: precioFinal,
                     duracion,
                     ...(profileId ? { profile_id: profileId } : {}),
+                    ...(promocionSeleccionada ? {
+                        promocion_id: promocionSeleccionada.id,
+                        descuento_aplicado: montoDescuento,
+                    } : {}),
                 }),
             });
 

@@ -64,6 +64,13 @@ export default function Navbar({ nombre = "Lood" }: { nombre?: string }) {
                             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#0057FF] transition-all group-hover:w-full" />
                         </Link>
                         <Link
+                            href="/clases"
+                            className="text-[#64748b] text-sm font-medium hover:text-[#0057FF] transition-colors relative group"
+                        >
+                            Clases
+                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#0057FF] transition-all group-hover:w-full" />
+                        </Link>
+                        <Link
                             href="#contacto"
                             className="text-[#64748b] text-sm font-medium hover:text-[#0057FF] transition-colors relative group"
                         >

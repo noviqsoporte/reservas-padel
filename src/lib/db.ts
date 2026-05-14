@@ -1,5 +1,5 @@
 import { serviceClient } from './supabase/service'
-import { Cancha, Reserva, Bloqueo, Config, Promocion, FotoGaleria } from '../types'
+import { Cancha, Reserva, Bloqueo, Config, Promocion, FotoGaleria, Clase } from '../types'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -177,6 +177,8 @@ export async function crearReserva(data: Omit<Reserva, 'id'>): Promise<Reserva> 
       ...(data.metodo_pago ? { metodo_pago: data.metodo_pago } : {}),
       ...(data.pago_estado ? { pago_estado: data.pago_estado } : {}),
       ...(data.monto_pagado !== undefined ? { monto_pagado: data.monto_pagado } : {}),
+      ...(data.promocion_id ? { promocion_id: data.promocion_id } : {}),
+      ...(data.descuento_aplicado !== undefined ? { descuento_aplicado: data.descuento_aplicado } : {}),
     })
     .select('*, canchas(nombre, precio)')
     .single()
@@ -292,8 +294,8 @@ export async function getPromociones(): Promise<Promocion[]> {
   return (data || []).map(mapPromocion)
 }
 
-export async function getPromocionesActivas(): Promise<Promocion[]> {
-  const hoy = new Date().toISOString().split('T')[0]
+export async function getPromocionesActivas(fecha?: string): Promise<Promocion[]> {
+  const hoy = fecha ?? new Date().toISOString().split('T')[0]
 
   const { data, error } = await serviceClient
     .from('promociones')
@@ -395,6 +397,117 @@ export async function eliminarFotoGaleria(id: string): Promise<void> {
   if (error) throw error
 }
 
+// ─── Clases ──────────────────────────────────────────────────────────────────
+
+export async function getClases(fecha?: string): Promise<Clase[]> {
+  let query = serviceClient
+    .from('clases')
+    .select('*')
+    .order('fecha', { ascending: true })
+    .order('hora_inicio', { ascending: true })
+
+  if (fecha) query = query.eq('fecha', fecha)
+
+  const { data, error } = await query
+  if (error) throw error
+  return (data || []).map(mapClase)
+}
+
+export async function getClasesActivas(fecha?: string): Promise<Clase[]> {
+  let query = serviceClient
+    .from('clases')
+    .select('*')
+    .eq('activa', true)
+    .order('fecha', { ascending: true })
+    .order('hora_inicio', { ascending: true })
+
+  if (fecha) query = query.eq('fecha', fecha)
+
+  const { data, error } = await query
+  if (error) throw error
+  return (data || []).map(mapClase)
+}
+
+export async function getClase(id: string): Promise<Clase> {
+  const { data, error } = await serviceClient
+    .from('clases')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error || !data) throw error ?? new Error('Clase no encontrada')
+  return mapClase(data)
+}
+
+export async function crearClase(data: Omit<Clase, 'id' | 'created_at'>): Promise<Clase> {
+  const { data: row, error } = await serviceClient
+    .from('clases')
+    .insert({
+      titulo: data.titulo,
+      descripcion: data.descripcion || '',
+      instructor: data.instructor || '',
+      fecha: data.fecha,
+      hora_inicio: data.hora_inicio,
+      hora_fin: data.hora_fin,
+      cupo_maximo: data.cupo_maximo,
+      cupo_disponible: data.cupo_disponible,
+      precio: data.precio,
+      activa: data.activa,
+    })
+    .select()
+    .single()
+
+  if (error || !row) throw error
+  return mapClase(row)
+}
+
+export async function actualizarClase(id: string, data: Partial<Clase>): Promise<Clase> {
+  const fields: Record<string, unknown> = {}
+  if (data.titulo !== undefined) fields.titulo = data.titulo
+  if (data.descripcion !== undefined) fields.descripcion = data.descripcion
+  if (data.instructor !== undefined) fields.instructor = data.instructor
+  if (data.fecha !== undefined) fields.fecha = data.fecha
+  if (data.hora_inicio !== undefined) fields.hora_inicio = data.hora_inicio
+  if (data.hora_fin !== undefined) fields.hora_fin = data.hora_fin
+  if (data.cupo_maximo !== undefined) fields.cupo_maximo = data.cupo_maximo
+  if (data.cupo_disponible !== undefined) fields.cupo_disponible = data.cupo_disponible
+  if (data.precio !== undefined) fields.precio = data.precio
+  if (data.activa !== undefined) fields.activa = data.activa
+
+  const { data: row, error } = await serviceClient
+    .from('clases')
+    .update(fields)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error || !row) throw error
+  return mapClase(row)
+}
+
+export async function eliminarClase(id: string): Promise<void> {
+  const { error } = await serviceClient.from('clases').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function reservarClase(id: string): Promise<void> {
+  const { data: clase, error: fetchError } = await serviceClient
+    .from('clases')
+    .select('cupo_disponible')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !clase) throw fetchError ?? new Error('Clase no encontrada')
+  if ((clase.cupo_disponible as number) <= 0) throw new Error('Clase sin cupo disponible')
+
+  const { error } = await serviceClient
+    .from('clases')
+    .update({ cupo_disponible: (clase.cupo_disponible as number) - 1 })
+    .eq('id', id)
+
+  if (error) throw error
+}
+
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
 function mapCancha(row: Record<string, unknown>): Cancha {
@@ -429,6 +542,8 @@ function mapReserva(row: Record<string, unknown>): Reserva {
     pago_estado: row.pago_estado as Reserva['pago_estado'],
     stripe_session_id: row.stripe_session_id as string | undefined,
     monto_pagado: row.monto_pagado as number | undefined,
+    promocion_id: (row.promocion_id as string) || undefined,
+    descuento_aplicado: (row.descuento_aplicado as number) || undefined,
     created_at: row.created_at as string | undefined,
   }
 }
@@ -461,6 +576,23 @@ function mapFotoGaleria(row: Record<string, unknown>): FotoGaleria {
     id: row.id as string,
     imagen_url: row.imagen_url as string,
     orden: row.orden as number,
+    activa: row.activa as boolean,
+    created_at: (row.created_at as string) || undefined,
+  }
+}
+
+function mapClase(row: Record<string, unknown>): Clase {
+  return {
+    id: row.id as string,
+    titulo: row.titulo as string,
+    descripcion: (row.descripcion as string) || undefined,
+    instructor: (row.instructor as string) || undefined,
+    fecha: row.fecha as string,
+    hora_inicio: row.hora_inicio as string,
+    hora_fin: row.hora_fin as string,
+    cupo_maximo: row.cupo_maximo as number,
+    cupo_disponible: row.cupo_disponible as number,
+    precio: row.precio as number,
     activa: row.activa as boolean,
     created_at: (row.created_at as string) || undefined,
   }
