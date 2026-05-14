@@ -654,7 +654,7 @@ export async function actualizarProfile(
       ...(data.telefono ? { telefono: data.telefono } : {}),
       updated_at: new Date().toISOString(),
     })
-    .eq('user_id', userId)
+    .eq('id', userId)
 
   if (error) throw error
 }
