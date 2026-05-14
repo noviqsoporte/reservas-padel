@@ -1,9 +1,13 @@
-import Link from "next/link";
-import { getClasesActivas } from "@/lib/db";
-import { Clase } from "@/types";
-import { Dumbbell, Clock, Users, Tag } from "lucide-react";
+"use client";
 
-export const dynamic = 'force-dynamic';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Dumbbell, Clock, Users, Tag } from "lucide-react";
+import toast from "react-hot-toast";
+import { useSession } from "@/hooks/useSession";
+import { Clase } from "@/types";
+
+const formatTime = (t: string) => t.slice(0, 5);
 
 function formatFecha(fecha: string) {
   return new Intl.DateTimeFormat("es-MX", {
@@ -23,10 +27,50 @@ function groupByFecha(clases: Clase[]): Record<string, Clase[]> {
   }, {} as Record<string, Clase[]>);
 }
 
-export default async function ClasesPage() {
-  const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date());
-  const todasLasClases = await getClasesActivas().catch(() => []);
-  const clases = todasLasClases.filter((c) => c.fecha >= hoy);
+export default function ClasesPage() {
+  const router = useRouter();
+  const { user } = useSession();
+
+  const [clases, setClases] = useState<Clase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reservando, setReservando] = useState<Set<string>>(new Set());
+  const [reservados, setReservados] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date());
+    fetch("/api/clases?activas=true")
+      .then((r) => r.json())
+      .then((data: Clase[]) => {
+        setClases(Array.isArray(data) ? data.filter((c) => c.fecha >= hoy) : []);
+      })
+      .catch(() => setClases([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleReservar = async (claseId: string) => {
+    if (!user) {
+      router.push("/auth?next=/clases");
+      return;
+    }
+    setReservando((prev) => new Set(prev).add(claseId));
+    try {
+      const res = await fetch(`/api/clases/${claseId}/reservar`, { method: "POST" });
+      if (res.ok) {
+        setReservados((prev) => new Set(prev).add(claseId));
+        toast.success("¡Lugar reservado con éxito!");
+      } else if (res.status === 409) {
+        toast.error("Esta clase ya está llena");
+      } else {
+        toast.error("Error al reservar. Intenta de nuevo.");
+      }
+    } finally {
+      setReservando((prev) => {
+        const s = new Set(prev);
+        s.delete(claseId);
+        return s;
+      });
+    }
+  };
 
   const grouped = groupByFecha(clases);
   const fechas = Object.keys(grouped).sort();
@@ -48,7 +92,9 @@ export default async function ClasesPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-10">
-        {fechas.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-24 text-[#64748b]">Cargando clases...</div>
+        ) : fechas.length === 0 ? (
           <div className="text-center py-24">
             <Dumbbell className="w-14 h-14 text-[#cbd5e1] mx-auto mb-4" />
             <h2 className="text-xl font-bold text-[#0f172a]">No hay clases próximas</h2>
@@ -64,6 +110,9 @@ export default async function ClasesPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {grouped[fecha].map((clase) => {
                     const hayLugares = clase.cupo_disponible > 0;
+                    const yaReservado = reservados.has(clase.id);
+                    const estaReservando = reservando.has(clase.id);
+
                     return (
                       <div
                         key={clase.id}
@@ -95,7 +144,7 @@ export default async function ClasesPage() {
                         <div className="flex flex-wrap items-center gap-3 text-sm text-[#64748b]">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" />
-                            {clase.hora_inicio} – {clase.hora_fin}
+                            {formatTime(clase.hora_inicio)} – {formatTime(clase.hora_fin)}
                           </span>
                           {clase.precio > 0 && (
                             <span className="flex items-center gap-1">
@@ -105,16 +154,26 @@ export default async function ClasesPage() {
                           )}
                         </div>
 
-                        <Link
-                          href="/auth"
-                          className={`mt-1 text-center text-sm font-semibold py-2.5 rounded-xl transition-colors ${
-                            hayLugares
-                              ? "bg-[#0057FF] text-white hover:bg-[#0041cc]"
-                              : "bg-[#f1f5f9] text-[#94a3b8] cursor-not-allowed pointer-events-none"
-                          }`}
-                        >
-                          {hayLugares ? "Reservar lugar" : "Sin lugares disponibles"}
-                        </Link>
+                        {yaReservado ? (
+                          <span className="mt-1 text-center text-sm font-semibold py-2.5 rounded-xl bg-green-50 text-green-700">
+                            ✓ Lugar reservado
+                          </span>
+                        ) : !hayLugares ? (
+                          <button
+                            disabled
+                            className="mt-1 text-center text-sm font-semibold py-2.5 rounded-xl bg-[#f1f5f9] text-[#94a3b8] cursor-not-allowed"
+                          >
+                            Clase llena
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleReservar(clase.id)}
+                            disabled={estaReservando}
+                            className="mt-1 text-center text-sm font-semibold py-2.5 rounded-xl bg-[#0057FF] text-white hover:bg-[#0041cc] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {estaReservando ? "Reservando..." : "Reservar lugar"}
+                          </button>
+                        )}
                       </div>
                     );
                   })}
