@@ -18,6 +18,7 @@ export function useSession() {
     const [loading, setLoading] = useState(true);
 
     const fetchProfile = async (userId: string) => {
+        if (!userId) return;
         const supabase = createClient();
         const { data } = await supabase
             .from("profiles")
@@ -48,7 +49,7 @@ export function useSession() {
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
-            if (session?.user) {
+            if (session?.user?.id) {
                 fetchProfile(session.user.id);
             } else {
                 setProfile(null);
