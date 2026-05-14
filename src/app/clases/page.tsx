@@ -37,11 +37,10 @@ export default function ClasesPage() {
   const [reservados, setReservados] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date());
     fetch("/api/clases?activas=true")
       .then((r) => r.json())
-      .then((data: Clase[]) => {
-        setClases(Array.isArray(data) ? data.filter((c) => c.fecha >= hoy) : []);
+      .then((data: { clases: Clase[] }) => {
+        setClases(Array.isArray(data.clases) ? data.clases : []);
       })
       .catch(() => setClases([]))
       .finally(() => setLoading(false));

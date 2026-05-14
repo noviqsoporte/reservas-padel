@@ -414,10 +414,12 @@ export async function getClases(fecha?: string): Promise<Clase[]> {
 }
 
 export async function getClasesActivas(fecha?: string): Promise<Clase[]> {
+  const today = new Date().toISOString().split('T')[0]
   let query = serviceClient
     .from('clases')
     .select('*')
     .eq('activa', true)
+    .gte('fecha', today)
     .order('fecha', { ascending: true })
     .order('hora_inicio', { ascending: true })
 

@@ -21,6 +21,8 @@ const EMPTY_FORM = {
   activa: true,
 };
 
+const formatTime = (t: string) => t.slice(0, 5);
+
 function formatFecha(fecha: string) {
   return new Intl.DateTimeFormat("es-MX", {
     day: "numeric",
@@ -206,7 +208,7 @@ export default function ClasesManager({ clases: clasesIniciales }: ClasesManager
                     <div className="text-sm text-[#0f172a]">{formatFecha(clase.fecha)}</div>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="text-sm text-[#0f172a]">{clase.hora_inicio} – {clase.hora_fin}</div>
+                    <div className="text-sm text-[#0f172a]">{formatTime(clase.hora_inicio)} – {formatTime(clase.hora_fin)}</div>
                   </td>
                   <td className="px-5 py-4">
                     <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-lg ${clase.cupo_disponible > 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
