@@ -104,6 +104,16 @@ export interface Clase {
     created_at?: string
 }
 
+export interface InscripcionClase {
+  id: string
+  clase_id: string
+  nombre_cliente: string
+  email: string
+  telefono?: string
+  profile_id?: string
+  created_at?: string
+}
+
 export interface FotoGaleria {
     id: string
     imagen_url: string

@@ -1,5 +1,5 @@
 import { serviceClient } from './supabase/service'
-import { Cancha, Reserva, Bloqueo, Config, Promocion, FotoGaleria, Clase } from '../types'
+import { Cancha, Reserva, Bloqueo, Config, Promocion, FotoGaleria, Clase, InscripcionClase } from '../types'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -492,22 +492,65 @@ export async function eliminarClase(id: string): Promise<void> {
   if (error) throw error
 }
 
-export async function reservarClase(id: string): Promise<void> {
+export async function reservarClase(
+  clase_id: string,
+  data: { nombre_cliente: string; email: string; telefono?: string; profile_id?: string }
+): Promise<void> {
   const { data: clase, error: fetchError } = await serviceClient
     .from('clases')
     .select('cupo_disponible')
-    .eq('id', id)
+    .eq('id', clase_id)
     .single()
 
   if (fetchError || !clase) throw fetchError ?? new Error('Clase no encontrada')
   if ((clase.cupo_disponible as number) <= 0) throw new Error('Clase sin cupo disponible')
 
+  const { data: existing } = await serviceClient
+    .from('inscripciones_clases')
+    .select('id')
+    .eq('clase_id', clase_id)
+    .eq('email', data.email)
+    .maybeSingle()
+
+  if (existing) throw new Error('Ya estás inscrito en esta clase')
+
+  const { error: insertError } = await serviceClient
+    .from('inscripciones_clases')
+    .insert({
+      clase_id,
+      nombre_cliente: data.nombre_cliente,
+      email: data.email,
+      telefono: data.telefono ?? null,
+      profile_id: data.profile_id ?? null,
+    })
+
+  if (insertError) throw insertError
+
   const { error } = await serviceClient
     .from('clases')
     .update({ cupo_disponible: (clase.cupo_disponible as number) - 1 })
-    .eq('id', id)
+    .eq('id', clase_id)
 
   if (error) throw error
+}
+
+export async function getInscripcionesByClase(clase_id: string): Promise<InscripcionClase[]> {
+  const { data, error } = await serviceClient
+    .from('inscripciones_clases')
+    .select('*')
+    .eq('clase_id', clase_id)
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return (data || []).map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    clase_id: row.clase_id as string,
+    nombre_cliente: row.nombre_cliente as string,
+    email: row.email as string,
+    telefono: (row.telefono as string) || undefined,
+    profile_id: (row.profile_id as string) || undefined,
+    created_at: (row.created_at as string) || undefined,
+  }))
 }
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────

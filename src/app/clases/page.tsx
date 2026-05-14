@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Dumbbell, Clock, Users, Tag } from "lucide-react";
+import { Dumbbell, Clock, Users, Tag, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useSession } from "@/hooks/useSession";
 import { Clase } from "@/types";
@@ -29,12 +29,15 @@ function groupByFecha(clases: Clase[]): Record<string, Clase[]> {
 
 export default function ClasesPage() {
   const router = useRouter();
-  const { user } = useSession();
+  const { user, profile } = useSession();
 
   const [clases, setClases] = useState<Clase[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reservando, setReservando] = useState<Set<string>>(new Set());
   const [reservados, setReservados] = useState<Set<string>>(new Set());
+
+  const [modalClase, setModalClase] = useState<Clase | null>(null);
+  const [formInscripcion, setFormInscripcion] = useState({ nombre: "", telefono: "" });
+  const [loadingInscripcion, setLoadingInscripcion] = useState(false);
 
   useEffect(() => {
     fetch("/api/clases?activas=true")
@@ -46,28 +49,53 @@ export default function ClasesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleReservar = async (claseId: string) => {
+  const handleOpenModal = (clase: Clase) => {
     if (!user) {
       router.push("/auth?next=/clases");
       return;
     }
-    setReservando((prev) => new Set(prev).add(claseId));
+    setFormInscripcion({ nombre: profile?.nombre ?? "", telefono: "" });
+    setModalClase(clase);
+  };
+
+  const handleConfirmarInscripcion = async () => {
+    if (!user || !modalClase) return;
+    if (!formInscripcion.nombre.trim()) {
+      toast.error("Por favor ingresa tu nombre");
+      return;
+    }
+    setLoadingInscripcion(true);
     try {
-      const res = await fetch(`/api/clases/${claseId}/reservar`, { method: "POST" });
+      const res = await fetch(`/api/clases/${modalClase.id}/reservar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre_cliente: formInscripcion.nombre,
+          email: user.email,
+          telefono: formInscripcion.telefono,
+          profile_id: profile?.id,
+        }),
+      });
       if (res.ok) {
-        setReservados((prev) => new Set(prev).add(claseId));
-        toast.success("¡Lugar reservado con éxito!");
+        setReservados((prev) => new Set(prev).add(modalClase.id));
+        setClases((prev) =>
+          prev.map((c) =>
+            c.id === modalClase.id
+              ? { ...c, cupo_disponible: c.cupo_disponible - 1 }
+              : c
+          )
+        );
+        setModalClase(null);
+        toast.success("¡Lugar reservado! Te esperamos el día de la clase.");
       } else if (res.status === 409) {
-        toast.error("Esta clase ya está llena");
+        const body = await res.json();
+        toast.error(body.error ?? "No se pudo completar la reserva");
+        setModalClase(null);
       } else {
         toast.error("Error al reservar. Intenta de nuevo.");
       }
     } finally {
-      setReservando((prev) => {
-        const s = new Set(prev);
-        s.delete(claseId);
-        return s;
-      });
+      setLoadingInscripcion(false);
     }
   };
 
@@ -110,7 +138,6 @@ export default function ClasesPage() {
                   {grouped[fecha].map((clase) => {
                     const hayLugares = clase.cupo_disponible > 0;
                     const yaReservado = reservados.has(clase.id);
-                    const estaReservando = reservando.has(clase.id);
 
                     return (
                       <div
@@ -166,11 +193,10 @@ export default function ClasesPage() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => handleReservar(clase.id)}
-                            disabled={estaReservando}
-                            className="mt-1 text-center text-sm font-semibold py-2.5 rounded-xl bg-[#0057FF] text-white hover:bg-[#0041cc] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                            onClick={() => handleOpenModal(clase)}
+                            className="mt-1 text-center text-sm font-semibold py-2.5 rounded-xl bg-[#0057FF] text-white hover:bg-[#0041cc] transition-colors"
                           >
-                            {estaReservando ? "Reservando..." : "Reservar lugar"}
+                            Reservar lugar
                           </button>
                         )}
                       </div>
@@ -182,6 +208,81 @@ export default function ClasesPage() {
           </div>
         )}
       </div>
+
+      {/* MODAL DE INSCRIPCIÓN */}
+      {modalClase && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col">
+            <div className="px-6 py-5 border-b border-[#e2e8f0] flex justify-between items-center">
+              <h3 className="font-bold text-[#0f172a] text-lg">Reservar lugar</h3>
+              <button
+                onClick={() => setModalClase(null)}
+                className="text-[#94a3b8] hover:text-[#0f172a] rounded-full p-1 hover:bg-[#f1f5f9] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <p className="font-semibold text-[#0f172a]">{modalClase.titulo}</p>
+                <p className="text-sm text-[#64748b] mt-0.5 capitalize">{formatFecha(modalClase.fecha)}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#0f172a] mb-1.5">
+                  Nombre completo *
+                </label>
+                <input
+                  type="text"
+                  value={formInscripcion.nombre}
+                  onChange={(e) => setFormInscripcion({ ...formInscripcion, nombre: e.target.value })}
+                  placeholder="Tu nombre completo"
+                  className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0057FF] bg-white text-[#0f172a]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#0f172a] mb-1.5">
+                  Teléfono (opcional)
+                </label>
+                <input
+                  type="tel"
+                  value={formInscripcion.telefono}
+                  onChange={(e) => setFormInscripcion({ ...formInscripcion, telefono: e.target.value })}
+                  placeholder="Tu número de teléfono"
+                  className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0057FF] bg-white text-[#0f172a]"
+                />
+              </div>
+
+              <div className="text-sm text-[#64748b]">
+                Reservando como <span className="font-semibold text-[#0f172a]">{user?.email}</span>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+                💳 El pago se realiza en recepción el día de la clase
+              </div>
+            </div>
+
+            <div className="px-6 py-5 border-t border-[#e2e8f0] flex gap-3 justify-end">
+              <button
+                onClick={() => setModalClase(null)}
+                disabled={loadingInscripcion}
+                className="text-[#64748b] font-medium hover:text-[#0f172a] px-4 py-2 rounded-lg"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmarInscripcion}
+                disabled={loadingInscripcion}
+                className="bg-[#0057FF] text-white font-semibold rounded-xl px-6 py-2.5 hover:bg-[#0041cc] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loadingInscripcion ? "Confirmando..." : "Confirmar reserva"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

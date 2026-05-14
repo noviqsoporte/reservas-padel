@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, X, Dumbbell } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Dumbbell, Users } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { Clase } from "@/types";
+import { Clase, InscripcionClase } from "@/types";
 
 interface ClasesManagerProps {
   clases: Clase[];
@@ -39,6 +39,25 @@ export default function ClasesManager({ clases: clasesIniciales }: ClasesManager
   const [confirmandoEliminar, setConfirmandoEliminar] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+
+  const [modalInscritos, setModalInscritos] = useState<Clase | null>(null);
+  const [inscripciones, setInscripciones] = useState<InscripcionClase[]>([]);
+  const [loadingInscritos, setLoadingInscritos] = useState(false);
+
+  const handleOpenInscritos = async (clase: Clase) => {
+    setModalInscritos(clase);
+    setLoadingInscritos(true);
+    try {
+      const res = await fetch(`/api/clases/${clase.id}/inscripciones`);
+      const data = await res.json();
+      setInscripciones(Array.isArray(data.inscripciones) ? data.inscripciones : []);
+    } catch {
+      toast.error("Error al cargar inscritos");
+      setInscripciones([]);
+    } finally {
+      setLoadingInscritos(false);
+    }
+  };
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -229,6 +248,13 @@ export default function ClasesManager({ clases: clasesIniciales }: ClasesManager
                   <td className="px-5 py-4">
                     <div className="flex justify-end gap-2">
                       <button
+                        onClick={() => handleOpenInscritos(clase)}
+                        className="p-1.5 rounded-lg text-[#64748b] hover:text-[#0057FF] hover:bg-[#eef3ff] transition-colors"
+                        title="Ver inscritos"
+                      >
+                        <Users className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleOpenEditar(clase)}
                         className="p-1.5 rounded-lg text-[#64748b] hover:text-[#1e3a5f] hover:bg-[#f1f5f9] transition-colors"
                       >
@@ -382,6 +408,68 @@ export default function ClasesManager({ clases: clasesIniciales }: ClasesManager
                 className={`bg-[#1e3a5f] text-white font-semibold rounded-xl px-6 py-2.5 hover:bg-[#2563eb] transition-colors ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
               >
                 {loading ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL INSCRITOS */}
+      {modalInscritos && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="px-6 py-5 border-b border-[#e2e8f0] flex justify-between items-center sticky top-0 bg-white z-10">
+              <div>
+                <h3 className="font-bold text-[#0f172a] text-lg">Inscritos</h3>
+                <p className="text-sm text-[#64748b] mt-0.5">{modalInscritos.titulo}</p>
+              </div>
+              <button
+                onClick={() => setModalInscritos(null)}
+                className="text-[#94a3b8] hover:text-[#0f172a] rounded-full p-1 hover:bg-[#f1f5f9] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {loadingInscritos ? (
+                <div className="py-16 text-center text-[#64748b] text-sm">Cargando inscritos...</div>
+              ) : inscripciones.length === 0 ? (
+                <div className="py-16 text-center text-[#64748b] text-sm">Sin inscritos aún</div>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[#e2e8f0] bg-[#f8f9fa]">
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">Nombre</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">Email</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider hidden md:table-cell">Teléfono</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider hidden md:table-cell">Fecha inscripción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e2e8f0]">
+                    {inscripciones.map((ins) => (
+                      <tr key={ins.id} className="hover:bg-[#f8f9fa]">
+                        <td className="px-5 py-3 text-sm text-[#0f172a] font-medium">{ins.nombre_cliente}</td>
+                        <td className="px-5 py-3 text-sm text-[#64748b]">{ins.email}</td>
+                        <td className="px-5 py-3 text-sm text-[#64748b] hidden md:table-cell">{ins.telefono || "—"}</td>
+                        <td className="px-5 py-3 text-sm text-[#64748b] hidden md:table-cell">
+                          {ins.created_at
+                            ? new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short" }).format(new Date(ins.created_at))
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-[#e2e8f0] flex justify-end">
+              <button
+                onClick={() => setModalInscritos(null)}
+                className="text-[#64748b] font-medium hover:text-[#0f172a] px-4 py-2 rounded-lg"
+              >
+                Cerrar
               </button>
             </div>
           </div>
