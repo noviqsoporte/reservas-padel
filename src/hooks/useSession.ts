@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 
 export interface Profile {
     id: string;
-    user_id: string;
     nombre: string | null;
     email: string | null;
     telefono: string | null;
@@ -23,9 +22,15 @@ export function useSession() {
         const { data } = await supabase
             .from("profiles")
             .select("*")
-            .eq("user_id", userId)
-            .single();
-        setProfile(data ?? null);
+            .eq("id", userId)
+            .maybeSingle();
+        if (data === null) {
+            setProfile(null);
+            setLoading(false);
+            return;
+        }
+        setProfile(data);
+        setLoading(false);
     };
 
     const signOut = async () => {
@@ -47,11 +52,11 @@ export function useSession() {
             }
         });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             setUser(session?.user ?? null);
-            if (session?.user?.id) {
+            if (event === 'SIGNED_IN' && session?.user?.id) {
                 fetchProfile(session.user.id);
-            } else {
+            } else if (event === 'SIGNED_OUT') {
                 setProfile(null);
             }
         });
