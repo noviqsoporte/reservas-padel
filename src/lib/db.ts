@@ -66,6 +66,7 @@ export async function getCanchas(): Promise<Cancha[]> {
     .from('canchas')
     .select('*')
     .eq('activa', true)
+    .order('nombre', { ascending: true })
 
   if (error) throw error
   return (data || []).map(mapCancha)
