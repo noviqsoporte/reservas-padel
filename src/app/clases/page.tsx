@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Dumbbell, Clock, Users, Tag, X } from "lucide-react";
+import { Dumbbell, Clock, Users, Tag, X, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import { useSession } from "@/hooks/useSession";
 import { Clase } from "@/types";
@@ -104,8 +104,19 @@ export default function ClasesPage() {
 
   return (
     <main className="min-h-screen bg-[#f8f9fa]">
+      {/* Back button */}
+      <div className="max-w-4xl mx-auto px-6 pt-6">
+        <button
+          onClick={() => router.push("/")}
+          className="inline-flex items-center gap-2 text-sm font-medium text-[#64748b] hover:text-[#0057FF] transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Volver al inicio
+        </button>
+      </div>
+
       {/* Header */}
-      <div className="bg-white border-b border-[#e2e8f0]">
+      <div className="bg-white border-b border-[#e2e8f0] mt-4">
         <div className="max-w-4xl mx-auto px-6 py-12 text-center">
           <div className="inline-flex items-center gap-2 bg-[#eef3ff] text-[#0057FF] text-sm font-semibold px-4 py-1.5 rounded-full mb-4">
             <Dumbbell className="w-4 h-4" />
