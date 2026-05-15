@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { buildInstagramUrl, extractInstagramHandle } from "@/components/FloatingContactButtons";
 
 interface HeroSectionProps {
     nombre: string;
@@ -11,6 +12,7 @@ interface HeroSectionProps {
     horarioCierre: string;
     canchasActivas: number;
     heroImagenUrl?: string;
+    instagram?: string;
 }
 
 function useCountUp(target: number, inView: boolean, duration = 1400) {
@@ -100,7 +102,7 @@ function HeroPaddle() {
     );
 }
 
-export default function HeroSection({ nombre, descripcion, horarioApertura, horarioCierre, canchasActivas, heroImagenUrl }: HeroSectionProps) {
+export default function HeroSection({ nombre, descripcion, horarioApertura, horarioCierre, canchasActivas, heroImagenUrl, instagram }: HeroSectionProps) {
     const statsRef = useRef<HTMLDivElement>(null);
     const [statsInView, setStatsInView] = useState(false);
 
@@ -182,6 +184,12 @@ export default function HeroSection({ nombre, descripcion, horarioApertura, hora
                             >
                                 Ver canchas
                             </a>
+                            <a
+                                href="#clases"
+                                className="sm:hidden bg-transparent text-white font-semibold px-8 py-3.5 rounded-lg border border-white/50 hover:bg-white/10 transition-all duration-200 text-center"
+                            >
+                                Clases
+                            </a>
                         </motion.div>
 
                         <motion.div
@@ -201,10 +209,22 @@ export default function HeroSection({ nombre, descripcion, horarioApertura, hora
                                 <span className="text-xs text-white/60 font-medium uppercase tracking-wide">Horario</span>
                             </div>
                             <div className="w-px h-8 bg-white/20" />
-                            <div className="flex flex-col">
-                                <span className="text-2xl font-bold text-white">&lt; 60 seg</span>
-                                <span className="text-xs text-white/60 font-medium uppercase tracking-wide">Reserva</span>
-                            </div>
+                            {instagram ? (
+                                <a
+                                    href={buildInstagramUrl(instagram)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex flex-col hover:opacity-80 transition-opacity"
+                                >
+                                    <span className="text-2xl font-bold text-white">@{extractInstagramHandle(instagram)}</span>
+                                    <span className="text-xs text-white/60 font-medium uppercase tracking-wide">Síguenos</span>
+                                </a>
+                            ) : (
+                                <div className="flex flex-col">
+                                    <span className="text-2xl font-bold text-white">&lt; 60 seg</span>
+                                    <span className="text-xs text-white/60 font-medium uppercase tracking-wide">Reserva</span>
+                                </div>
+                            )}
                         </motion.div>
                     </div>
                 </div>
@@ -270,6 +290,12 @@ export default function HeroSection({ nombre, descripcion, horarioApertura, hora
                             >
                                 Ver canchas
                             </a>
+                            <a
+                                href="#clases"
+                                className="sm:hidden bg-transparent text-[#0d3461] font-semibold px-8 py-3.5 rounded-lg border border-[#0d3461] hover:bg-[#0d3461] hover:text-white transition-all duration-200 text-center"
+                            >
+                                Clases
+                            </a>
                         </motion.div>
 
                         {/* Stats Row */}
@@ -290,10 +316,22 @@ export default function HeroSection({ nombre, descripcion, horarioApertura, hora
                                 <span className="text-xs text-[#64748b] font-medium uppercase tracking-wide">Horario</span>
                             </div>
                             <div className="w-px h-8 bg-[#e2e8f0]" />
-                            <div className="flex flex-col">
-                                <span className="text-2xl font-bold text-[#0057FF]">&lt; 60 seg</span>
-                                <span className="text-xs text-[#64748b] font-medium uppercase tracking-wide">Reserva</span>
-                            </div>
+                            {instagram ? (
+                                <a
+                                    href={buildInstagramUrl(instagram)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex flex-col hover:opacity-80 transition-opacity"
+                                >
+                                    <span className="text-2xl font-bold text-[#0057FF]">@{extractInstagramHandle(instagram)}</span>
+                                    <span className="text-xs text-[#64748b] font-medium uppercase tracking-wide">Síguenos</span>
+                                </a>
+                            ) : (
+                                <div className="flex flex-col">
+                                    <span className="text-2xl font-bold text-[#0057FF]">&lt; 60 seg</span>
+                                    <span className="text-xs text-[#64748b] font-medium uppercase tracking-wide">Reserva</span>
+                                </div>
+                            )}
                         </motion.div>
                     </div>
 

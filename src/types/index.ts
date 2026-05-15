@@ -51,6 +51,7 @@ export interface Config {
     horas_pico?: string
     dias_pico?: string
     hero_imagen_url?: string
+    maps_url?: string
 }
 
 export interface SlotHorario {

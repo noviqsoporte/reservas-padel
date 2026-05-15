@@ -27,7 +27,7 @@ export default async function Home() {
   ]);
 
   const nombre = config.negocio_nombre || 'Lood';
-  const descripcion = (config as unknown as { descripcion?: string }).descripcion || "Las mejores canchas de la ciudad";
+  const descripcion = (config as unknown as { descripcion?: string }).descripcion || "Recién abiertos";
   const canchasActivas = canchas.filter(c => c.activa).length;
 
   return (
@@ -41,6 +41,7 @@ export default async function Home() {
         horarioCierre={config.horario_cierre}
         canchasActivas={canchasActivas}
         heroImagenUrl={config.hero_imagen_url}
+        instagram={config.instagram}
       />
 
       <CanchasSection canchas={canchas} />
@@ -48,7 +49,7 @@ export default async function Home() {
       <ReservaSection />
 
       <Footer config={config} />
-      <FloatingContactButtons telefono={config.telefono} instagram={config.instagram} />
+      <FloatingContactButtons telefono={config.telefono} instagram={config.instagram} maps_url={config.maps_url} />
       <PromocionFlotante />
     </div>
   );

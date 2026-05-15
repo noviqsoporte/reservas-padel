@@ -258,6 +258,16 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
                         />
                     </div>
                     <div>
+                        <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Link de Google Maps</label>
+                        <input
+                            type="text"
+                            placeholder="https://maps.app.goo.gl/..."
+                            value={form.maps_url || ''}
+                            onChange={(e) => setForm({ ...form, maps_url: e.target.value })}
+                            className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                        />
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Teléfono</label>
                         <input
                             type="tel"
