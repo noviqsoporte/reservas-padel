@@ -38,6 +38,7 @@ export async function getConfig(): Promise<Config> {
     horas_pico: data.horas_pico || '',
     dias_pico: data.dias_pico || '',
     hero_imagen_url: (data.hero_imagen_url as string) || undefined,
+    maps_url: (data.maps_url as string) || undefined,
   }
 }
 

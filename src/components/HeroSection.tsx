@@ -185,7 +185,7 @@ export default function HeroSection({ nombre, descripcion, horarioApertura, hora
                                 Ver canchas
                             </a>
                             <a
-                                href="#clases"
+                                href="/clases"
                                 className="sm:hidden bg-transparent text-white font-semibold px-8 py-3.5 rounded-lg border border-white/50 hover:bg-white/10 transition-all duration-200 text-center"
                             >
                                 Clases
