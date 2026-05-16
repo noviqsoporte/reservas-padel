@@ -75,16 +75,15 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error("La imagen no puede exceder los 5MB");
-            return;
-        }
         setArchivoBanner(file);
         setPreviewBanner(URL.createObjectURL(file));
     };
 
     const uploadToCloudinary = async (file: File): Promise<string> => {
         const fileToUpload = await compressImage(file);
+        if (fileToUpload.size > 5 * 1024 * 1024) {
+            throw new Error("La imagen no puede exceder los 5MB");
+        }
         const formData = new FormData();
         formData.append('file', fileToUpload);
         formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
