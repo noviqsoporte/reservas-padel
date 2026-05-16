@@ -118,7 +118,7 @@ export function generarSlots(
             disponible: !isOcupadoReserva && !isOcupadoBloqueo
         });
 
-        currentTime = nextTime;
+        currentTime = addMinutes(currentTime, 60);
     }
 
     return slots;
