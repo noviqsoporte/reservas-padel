@@ -88,6 +88,7 @@ export interface Promocion {
     imagen_url?: string
     fecha_inicio?: string
     fecha_fin?: string
+    tipo?: string
 }
 
 export interface Clase {

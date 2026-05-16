@@ -123,9 +123,14 @@ export default function ReservaWizard() {
     }, [fecha]);
 
     const precioOriginal = slotSeleccionado?.precio ?? canchaSeleccionada?.precio ?? 0;
-    const montoDescuento = promocionSeleccionada
-        ? Math.round(precioOriginal * (promocionSeleccionada.descuento / 100))
-        : 0;
+    let montoDescuento = 0;
+    if (promocionSeleccionada) {
+        if (promocionSeleccionada.tipo === '2x1_2horas' && duracion === 120) {
+            montoDescuento = Math.round(precioOriginal / 2);
+        } else if (promocionSeleccionada.tipo !== '2x1_2horas') {
+            montoDescuento = Math.round(precioOriginal * (promocionSeleccionada.descuento / 100));
+        }
+    }
     const precioFinal = precioOriginal - montoDescuento;
 
     const today = new Date().toISOString().split("T")[0];
@@ -696,12 +701,17 @@ export default function ReservaWizard() {
                                                                         ? "bg-green-500 text-white"
                                                                         : "bg-green-100 text-green-700"
                                                                 }`}>
-                                                                    -{promo.descuento}%
+                                                                    {promo.tipo === '2x1_2horas' ? '2x1 2h' : `-${promo.descuento}%`}
                                                                 </span>
                                                             </button>
                                                         );
                                                     })}
                                                 </div>
+                                                {promocionSeleccionada?.tipo === '2x1_2horas' && duracion !== 120 && (
+                                                    <p className="mt-2 text-xs text-amber-600 font-medium">
+                                                        Esta promoción aplica solo para reservas de 2 horas
+                                                    </p>
+                                                )}
                                             </div>
                                         )}
 
@@ -810,10 +820,12 @@ export default function ReservaWizard() {
                                                         {precioOriginal > 0 ? `$${precioOriginal}` : "A confirmar"}
                                                     </span>
                                                 </div>
-                                                {promocionSeleccionada && (
+                                                {promocionSeleccionada && montoDescuento > 0 && (
                                                     <div className="flex justify-between items-center">
                                                         <span className="text-sm text-green-600 font-medium">
-                                                            -{promocionSeleccionada.descuento}% {promocionSeleccionada.titulo}
+                                                            {promocionSeleccionada.tipo === '2x1_2horas'
+                                                                ? `2x1 ${promocionSeleccionada.titulo}`
+                                                                : `-${promocionSeleccionada.descuento}% ${promocionSeleccionada.titulo}`}
                                                         </span>
                                                         <span className="text-sm font-semibold text-green-600">-${montoDescuento}</span>
                                                     </div>

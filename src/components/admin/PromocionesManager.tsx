@@ -32,6 +32,7 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
     const [activa, setActiva] = useState(true);
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaFin, setFechaFin] = useState('');
+    const [tipo, setTipo] = useState<'descuento' | '2x1_2horas'>('descuento');
 
     // Cloudinary
     const [archivoBanner, setArchivoBanner] = useState<File | null>(null);
@@ -45,6 +46,7 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
         setActiva(true);
         setFechaInicio('');
         setFechaFin('');
+        setTipo('descuento');
         setArchivoBanner(null);
         setPreviewBanner(null);
         setPromoEditando(null);
@@ -64,6 +66,7 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
         setActiva(promo.activa);
         setFechaInicio(promo.fecha_inicio || '');
         setFechaFin(promo.fecha_fin || '');
+        setTipo((promo.tipo as 'descuento' | '2x1_2horas') || 'descuento');
         setModalAbierto('editar');
     };
 
@@ -126,11 +129,12 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
             const payload = {
                 titulo,
                 descripcion,
-                descuento,
+                descuento: tipo === '2x1_2horas' ? 0 : descuento,
                 activa,
                 imagen_url: imagenUrlFinal || null,
                 fecha_inicio: fechaInicio || null,
                 fecha_fin: fechaFin || null,
+                tipo,
             };
 
             if (modalAbierto === 'crear') {
@@ -275,9 +279,15 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
                                         </div>
                                     </td>
                                     <td className="px-5 py-4">
-                                        <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 font-bold text-sm px-2.5 py-1 rounded-lg">
-                                            {promo.descuento}% OFF
-                                        </span>
+                                        {promo.tipo === '2x1_2horas' ? (
+                                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 font-bold text-sm px-2.5 py-1 rounded-lg">
+                                                2x1 2h
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 font-bold text-sm px-2.5 py-1 rounded-lg">
+                                                {promo.descuento}% OFF
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-5 py-4 hidden md:table-cell">
                                         <div className="text-xs text-[#64748b]">
@@ -364,6 +374,19 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
                             </div>
 
                             <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Tipo de promoción</label>
+                                <select
+                                    value={tipo}
+                                    onChange={(e) => setTipo(e.target.value as 'descuento' | '2x1_2horas')}
+                                    className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                >
+                                    <option value="descuento">Descuento (%)</option>
+                                    <option value="2x1_2horas">2x1 en 2 horas</option>
+                                </select>
+                            </div>
+
+                            {tipo === 'descuento' && (
+                            <div>
                                 <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Descuento (%) *</label>
                                 <div className="relative">
                                     <input
@@ -378,6 +401,7 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#64748b] font-medium">%</span>
                                 </div>
                             </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>

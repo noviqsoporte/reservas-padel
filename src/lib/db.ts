@@ -322,6 +322,7 @@ export async function crearPromocion(data: Omit<Promocion, 'id'>): Promise<Promo
       imagen_url: data.imagen_url || null,
       fecha_inicio: data.fecha_inicio || null,
       fecha_fin: data.fecha_fin || null,
+      tipo: data.tipo || 'descuento',
     })
     .select()
     .single()
@@ -343,6 +344,7 @@ export async function actualizarPromocion(id: string, data: Partial<Promocion>):
   if (data.imagen_url !== undefined) fields.imagen_url = data.imagen_url
   if (data.fecha_inicio !== undefined) fields.fecha_inicio = data.fecha_inicio || null
   if (data.fecha_fin !== undefined) fields.fecha_fin = data.fecha_fin || null
+  if (data.tipo !== undefined) fields.tipo = data.tipo
 
   const { data: row, error } = await serviceClient
     .from('promociones')
@@ -615,6 +617,7 @@ function mapPromocion(row: Record<string, unknown>): Promocion {
     imagen_url: (row.imagen_url as string) || undefined,
     fecha_inicio: (row.fecha_inicio as string) || undefined,
     fecha_fin: (row.fecha_fin as string) || undefined,
+    tipo: (row.tipo as string) || 'descuento',
   }
 }
 

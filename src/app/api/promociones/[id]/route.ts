@@ -6,12 +6,12 @@ export const dynamic = 'force-dynamic'
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await req.json()
-    const { titulo, descripcion, descuento, activa, imagen_url, fecha_inicio, fecha_fin } = body
+    const { titulo, descripcion, descuento, activa, imagen_url, fecha_inicio, fecha_fin, tipo } = body
 
     if (titulo !== undefined && !titulo.trim()) {
       return NextResponse.json({ error: 'El título no puede estar vacío' }, { status: 400 })
     }
-    if (descuento !== undefined && (typeof descuento !== 'number' || descuento < 0 || descuento > 100)) {
+    if (tipo !== '2x1_2horas' && descuento !== undefined && (typeof descuento !== 'number' || descuento < 0 || descuento > 100)) {
       return NextResponse.json({ error: 'El descuento debe ser entre 0 y 100' }, { status: 400 })
     }
 
@@ -23,6 +23,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       ...(imagen_url !== undefined && { imagen_url }),
       ...(fecha_inicio !== undefined && { fecha_inicio }),
       ...(fecha_fin !== undefined && { fecha_fin }),
+      ...(tipo !== undefined && { tipo }),
     })
 
     return NextResponse.json({ promocion })

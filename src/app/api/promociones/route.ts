@@ -18,23 +18,25 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { titulo, descripcion, descuento, activa, imagen_url, fecha_inicio, fecha_fin } = body
+    const { titulo, descripcion, descuento, activa, imagen_url, fecha_inicio, fecha_fin, tipo } = body
 
     if (!titulo?.trim()) {
       return NextResponse.json({ error: 'El título es obligatorio' }, { status: 400 })
     }
-    if (typeof descuento !== 'number' || descuento < 0 || descuento > 100) {
+    const tipoFinal = tipo || 'descuento'
+    if (tipoFinal !== '2x1_2horas' && (typeof descuento !== 'number' || descuento < 0 || descuento > 100)) {
       return NextResponse.json({ error: 'El descuento debe ser un número entre 0 y 100' }, { status: 400 })
     }
 
     const promocion = await crearPromocion({
       titulo: titulo.trim(),
       descripcion: descripcion?.trim() || '',
-      descuento,
+      descuento: tipoFinal === '2x1_2horas' ? 0 : descuento,
       activa: activa ?? true,
       imagen_url: imagen_url || undefined,
       fecha_inicio: fecha_inicio || undefined,
       fecha_fin: fecha_fin || undefined,
+      tipo: tipoFinal,
     })
 
     return NextResponse.json({ promocion }, { status: 201 })
