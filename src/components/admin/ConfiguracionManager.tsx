@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, X, ImageIcon, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
+import { compressImage } from "@/lib/compressImage";
 import { Config, FotoGaleria } from "@/types";
 
 interface ConfiguracionManagerProps {
@@ -113,8 +114,9 @@ export default function ConfiguracionManager({ config: initialConfig }: Configur
     };
 
     const uploadToCloudinary = async (file: File): Promise<string> => {
+        const fileToUpload = await compressImage(file);
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', fileToUpload);
         formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
         const res = await fetch(
             `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,

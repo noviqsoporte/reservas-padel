@@ -9,6 +9,7 @@ import {
     Plus
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { compressImage } from "@/lib/compressImage";
 import { Cancha } from "@/types";
 
 interface CanchasManagerProps {
@@ -88,8 +89,9 @@ export default function CanchasManager({ canchas: canchasIniciales }: CanchasMan
     };
 
     const uploadToCloudinary = async (file: File): Promise<string> => {
+        const fileToUpload = await compressImage(file);
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', fileToUpload);
         formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
 
         const res = await fetch(

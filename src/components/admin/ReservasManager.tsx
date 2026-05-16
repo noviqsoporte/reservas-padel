@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "react-hot-toast";
-import { Search, Pencil, X, AlertTriangle, MessageSquare, Calendar, Eye, User, CreditCard, Clock } from "lucide-react";
+import { Search, Pencil, X, AlertTriangle, MessageSquare, Calendar, Eye, User, CreditCard, Clock, Plus } from "lucide-react";
 import { Cancha, Reserva } from "@/types";
 
 interface ReservasManagerProps {
@@ -26,6 +26,24 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
     const [reservaEditando, setReservaEditando] = useState<Reserva | null>(null);
     const [reservaCancelando, setReservaCancelando] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [loadingPago, setLoadingPago] = useState(false);
+
+    // Modal nueva reserva
+    const [nuevaReservaOpen, setNuevaReservaOpen] = useState(false);
+    const [loadingNueva, setLoadingNueva] = useState(false);
+    const [errorNueva, setErrorNueva] = useState<string | null>(null);
+    const [nuevaReservaForm, setNuevaReservaForm] = useState({
+        cancha_id: '',
+        fecha: '',
+        hora_inicio: '07:00',
+        duracion: 60,
+        nombre_cliente: '',
+        telefono: '',
+        email: '',
+        notas: '',
+        metodo_pago: 'efectivo' as 'efectivo' | 'online',
+        estado: 'Confirmada' as 'Confirmada' | 'Pendiente',
+    });
 
     // Computed state
     const reservasFiltradas = useMemo(() => {
@@ -64,6 +82,72 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
     };
 
     const todayStr = new Date().toISOString().split('T')[0];
+
+    const HORARIOS = Array.from({ length: 31 }, (_, i) => {
+        const totalMin = 7 * 60 + i * 30;
+        const h = Math.floor(totalMin / 60).toString().padStart(2, '0');
+        const m = (totalMin % 60).toString().padStart(2, '0');
+        return `${h}:${m}`;
+    });
+
+    const calcHoraFin = (horaInicio: string, duracionMin: number): string => {
+        const [h, m] = horaInicio.split(':').map(Number);
+        const totalMin = h * 60 + m + duracionMin;
+        return `${Math.floor(totalMin / 60).toString().padStart(2, '0')}:${(totalMin % 60).toString().padStart(2, '0')}`;
+    };
+
+    const openNuevaReserva = () => {
+        setNuevaReservaForm({
+            cancha_id: canchas[0]?.id ?? '',
+            fecha: filtroFecha || todayStr,
+            hora_inicio: '07:00',
+            duracion: 60,
+            nombre_cliente: '',
+            telefono: '',
+            email: '',
+            notas: '',
+            metodo_pago: 'efectivo',
+            estado: 'Confirmada',
+        });
+        setErrorNueva(null);
+        setNuevaReservaOpen(true);
+    };
+
+    const handleNuevaReserva = async () => {
+        setErrorNueva(null);
+        const { cancha_id, fecha, hora_inicio, duracion, nombre_cliente, telefono, email, notas, metodo_pago, estado } = nuevaReservaForm;
+
+        if (!cancha_id || !fecha || !hora_inicio || !nombre_cliente || !telefono) {
+            setErrorNueva('Completa los campos obligatorios: cancha, fecha, hora, nombre y teléfono.');
+            return;
+        }
+
+        const hora_fin = calcHoraFin(hora_inicio, duracion);
+
+        setLoadingNueva(true);
+        try {
+            const res = await fetch('/api/reservas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cancha_id, fecha, hora_inicio, hora_fin, nombre_cliente, telefono, email: email || '', notas: notas || '', metodo_pago, estado }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                const nuevaReserva: Reserva = data.reserva ?? data;
+                setReservas(prev => [nuevaReserva, ...prev]);
+                setNuevaReservaOpen(false);
+                toast.success('Reserva creada correctamente');
+            } else {
+                const errorData = await res.json();
+                setErrorNueva(errorData.error || 'Error al crear la reserva');
+            }
+        } catch (_error) {
+            setErrorNueva('Error de conexión. Intenta de nuevo.');
+        } finally {
+            setLoadingNueva(false);
+        }
+    };
 
     // Acción: Cancelar
     const handleCancelar = async () => {
@@ -141,6 +225,27 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
         } finally {
             setLoading(false);
             setReservaEditando(null);
+        }
+    };
+
+    const handleMarcarPagado = async (id: string) => {
+        setLoadingPago(true);
+        try {
+            const res = await fetch(`/api/reservas/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pago_estado: 'pagado' })
+            });
+            if (!res.ok) throw new Error();
+            setReservas(prev => prev.map(r =>
+                r.id === id ? { ...r, pago_estado: 'pagado' } : r
+            ));
+            setReservaDetalle(prev => prev ? { ...prev, pago_estado: 'pagado' } : null);
+            toast.success('Pago registrado correctamente');
+        } catch (_error) {
+            toast.error('Error al registrar el pago');
+        } finally {
+            setLoadingPago(false);
         }
     };
 
@@ -243,9 +348,18 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                             {reservasFiltradas.length}
                         </span>
                     </div>
-                    <span className="text-[#64748b] text-sm hidden md:inline-block">
-                        {reservasFiltradas.length} de {reservas.length} reservas
-                    </span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-[#64748b] text-sm hidden md:inline-block">
+                            {reservasFiltradas.length} de {reservas.length} reservas
+                        </span>
+                        <button
+                            onClick={openNuevaReserva}
+                            className="flex items-center gap-1.5 bg-[#1e3a5f] hover:bg-[#2563eb] text-white text-sm font-semibold rounded-xl px-4 py-2 transition-colors"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Nueva reserva
+                        </button>
+                    </div>
                 </div>
 
                 {reservasFiltradas.length === 0 ? (
@@ -538,6 +652,15 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                                                 ) : (
                                                     <span className="text-sm text-[#94a3b8]">—</span>
                                                 )}
+                                                {reservaDetalle.metodo_pago === 'efectivo' && reservaDetalle.pago_estado !== 'pagado' && (
+                                                    <button
+                                                        onClick={() => handleMarcarPagado(reservaDetalle.id)}
+                                                        disabled={loadingPago}
+                                                        className={`mt-2 block bg-green-600 text-white text-xs font-semibold rounded-lg px-3 py-1.5 hover:bg-green-700 transition-colors ${loadingPago ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        {loadingPago ? 'Guardando...' : 'Marcar como pagado'}
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="col-span-2">
@@ -573,6 +696,181 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                                 className="border border-[#e2e8f0] hover:bg-[#f8f9fa] text-[#64748b] font-medium rounded-xl px-6 py-2.5 transition-colors"
                             >
                                 No, mantener
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL NUEVA RESERVA */}
+            {nuevaReservaOpen && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl max-w-lg w-full shadow-xl flex flex-col max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center px-6 py-4 border-b border-[#e2e8f0] sticky top-0 bg-white rounded-t-2xl">
+                            <h3 className="text-lg font-bold text-[#0f172a]">Nueva reserva</h3>
+                            <button
+                                onClick={() => setNuevaReservaOpen(false)}
+                                className="text-[#64748b] hover:text-[#0f172a] rounded-full p-1.5 hover:bg-[#f1f5f9] transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            {/* Cancha */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Cancha <span className="text-red-500">*</span></label>
+                                <select
+                                    value={nuevaReservaForm.cancha_id}
+                                    onChange={(e) => setNuevaReservaForm(f => ({ ...f, cancha_id: e.target.value }))}
+                                    className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                >
+                                    {canchas.map(c => (
+                                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Fecha */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Fecha <span className="text-red-500">*</span></label>
+                                <input
+                                    type="date"
+                                    value={nuevaReservaForm.fecha}
+                                    onChange={(e) => setNuevaReservaForm(f => ({ ...f, fecha: e.target.value }))}
+                                    className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                />
+                            </div>
+
+                            {/* Hora inicio + Duración */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Hora inicio <span className="text-red-500">*</span></label>
+                                    <select
+                                        value={nuevaReservaForm.hora_inicio}
+                                        onChange={(e) => setNuevaReservaForm(f => ({ ...f, hora_inicio: e.target.value }))}
+                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                    >
+                                        {HORARIOS.map(h => (
+                                            <option key={h} value={h}>{h}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Duración</label>
+                                    <select
+                                        value={nuevaReservaForm.duracion}
+                                        onChange={(e) => setNuevaReservaForm(f => ({ ...f, duracion: Number(e.target.value) }))}
+                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                    >
+                                        <option value={60}>60 min</option>
+                                        <option value={90}>90 min</option>
+                                        <option value={120}>120 min</option>
+                                        <option value={150}>150 min</option>
+                                        <option value={180}>180 min</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Hora fin calculada */}
+                            <p className="text-xs text-[#94a3b8]">
+                                Hora fin: <span className="font-semibold text-[#64748b]">{calcHoraFin(nuevaReservaForm.hora_inicio, nuevaReservaForm.duracion)}</span>
+                            </p>
+
+                            {/* Nombre */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Nombre cliente <span className="text-red-500">*</span></label>
+                                <input
+                                    type="text"
+                                    value={nuevaReservaForm.nombre_cliente}
+                                    onChange={(e) => setNuevaReservaForm(f => ({ ...f, nombre_cliente: e.target.value }))}
+                                    placeholder="Ej: Juan Pérez"
+                                    className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                />
+                            </div>
+
+                            {/* Teléfono + Email */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Teléfono <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="tel"
+                                        value={nuevaReservaForm.telefono}
+                                        onChange={(e) => setNuevaReservaForm(f => ({ ...f, telefono: e.target.value }))}
+                                        placeholder="Ej: 5512345678"
+                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Email</label>
+                                    <input
+                                        type="email"
+                                        value={nuevaReservaForm.email}
+                                        onChange={(e) => setNuevaReservaForm(f => ({ ...f, email: e.target.value }))}
+                                        placeholder="opcional"
+                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Notas */}
+                            <div>
+                                <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Notas</label>
+                                <textarea
+                                    rows={2}
+                                    value={nuevaReservaForm.notas}
+                                    onChange={(e) => setNuevaReservaForm(f => ({ ...f, notas: e.target.value }))}
+                                    placeholder="opcional"
+                                    className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                />
+                            </div>
+
+                            {/* Método de pago + Estado */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Método de pago</label>
+                                    <select
+                                        value={nuevaReservaForm.metodo_pago}
+                                        onChange={(e) => setNuevaReservaForm(f => ({ ...f, metodo_pago: e.target.value as 'efectivo' | 'online' }))}
+                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                    >
+                                        <option value="efectivo">Efectivo</option>
+                                        <option value="online">Online</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Estado</label>
+                                    <select
+                                        value={nuevaReservaForm.estado}
+                                        onChange={(e) => setNuevaReservaForm(f => ({ ...f, estado: e.target.value as 'Confirmada' | 'Pendiente' }))}
+                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                    >
+                                        <option value="Confirmada">Confirmada</option>
+                                        <option value="Pendiente">Pendiente</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Error */}
+                            {errorNueva && (
+                                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">{errorNueva}</p>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3 px-6 pb-6">
+                            <button
+                                onClick={() => setNuevaReservaOpen(false)}
+                                disabled={loadingNueva}
+                                className="text-[#64748b] font-medium hover:text-[#0f172a] px-4 py-2"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleNuevaReserva}
+                                disabled={loadingNueva}
+                                className={`bg-[#1e3a5f] text-white font-semibold rounded-xl px-6 py-2.5 hover:bg-[#2563eb] transition-colors ${loadingNueva ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            >
+                                {loadingNueva ? 'Creando...' : 'Crear reserva'}
                             </button>
                         </div>
                     </div>
