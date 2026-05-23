@@ -1,5 +1,7 @@
 import { serviceClient } from './supabase/service'
 import { Cancha, Reserva, Bloqueo, Config, Promocion, FotoGaleria, Clase, InscripcionClase } from '../types'
+import { normalizarTelefono } from './telefono'
+import { fechaHoyMexico } from './fecha'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -171,7 +173,7 @@ export async function crearReserva(data: Omit<Reserva, 'id'>): Promise<Reserva> 
       hora_inicio: data.hora_inicio,
       hora_fin: data.hora_fin,
       nombre_cliente: data.nombre_cliente,
-      telefono: data.telefono,
+      telefono: normalizarTelefono(data.telefono),
       email: data.email,
       estado: data.estado,
       notas: data.notas || '',
@@ -252,6 +254,30 @@ export async function checkConflicto(
   return (data || []).length > 0
 }
 
+export async function contarReservasCompletadas(telefono: string): Promise<number> {
+  const normalizado = normalizarTelefono(telefono)
+  if (normalizado.length !== 10) return 0
+
+  const { data, error } = await serviceClient
+    .from('reservas')
+    .select('id, telefono')
+    .eq('estado', 'Completada')
+
+  if (error) throw error
+  return (data || []).filter(r => normalizarTelefono(r.telefono as string) === normalizado).length
+}
+
+export async function getPromocionById(id: string): Promise<Promocion | null> {
+  const { data, error } = await serviceClient
+    .from('promociones')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error || !data) return null
+  return mapPromocion(data)
+}
+
 // ─── Bloqueos ─────────────────────────────────────────────────────────────────
 
 export async function getBloqueos(): Promise<Bloqueo[]> {
@@ -296,15 +322,11 @@ export async function getPromociones(): Promise<Promocion[]> {
   return (data || []).map(mapPromocion)
 }
 
-export async function getPromocionesActivas(fecha?: string): Promise<Promocion[]> {
-  const hoy = fecha ?? new Date().toISOString().split('T')[0]
-
+export async function getPromocionesActivas(): Promise<Promocion[]> {
   const { data, error } = await serviceClient
     .from('promociones')
     .select('*')
     .eq('activa', true)
-    .or(`fecha_inicio.is.null,fecha_inicio.lte.${hoy}`)
-    .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)
     .order('created_at', { ascending: false })
 
   if (error) throw error
@@ -320,8 +342,6 @@ export async function crearPromocion(data: Omit<Promocion, 'id'>): Promise<Promo
       descuento: data.descuento,
       activa: data.activa,
       imagen_url: data.imagen_url || null,
-      fecha_inicio: data.fecha_inicio || null,
-      fecha_fin: data.fecha_fin || null,
       tipo: data.tipo || 'descuento',
     })
     .select()
@@ -342,8 +362,6 @@ export async function actualizarPromocion(id: string, data: Partial<Promocion>):
   if (data.descuento !== undefined) fields.descuento = data.descuento
   if (data.activa !== undefined) fields.activa = data.activa
   if (data.imagen_url !== undefined) fields.imagen_url = data.imagen_url
-  if (data.fecha_inicio !== undefined) fields.fecha_inicio = data.fecha_inicio || null
-  if (data.fecha_fin !== undefined) fields.fecha_fin = data.fecha_fin || null
   if (data.tipo !== undefined) fields.tipo = data.tipo
 
   const { data: row, error } = await serviceClient
@@ -418,7 +436,7 @@ export async function getClases(fecha?: string): Promise<Clase[]> {
 }
 
 export async function getClasesActivas(fecha?: string): Promise<Clase[]> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = fechaHoyMexico()
   let query = serviceClient
     .from('clases')
     .select('*')
@@ -615,9 +633,7 @@ function mapPromocion(row: Record<string, unknown>): Promocion {
     descuento: row.descuento as number,
     activa: row.activa as boolean,
     imagen_url: (row.imagen_url as string) || undefined,
-    fecha_inicio: (row.fecha_inicio as string) || undefined,
-    fecha_fin: (row.fecha_fin as string) || undefined,
-    tipo: (row.tipo as string) || 'descuento',
+    tipo: ((row.tipo as string) || 'descuento') as Promocion['tipo'],
   }
 }
 

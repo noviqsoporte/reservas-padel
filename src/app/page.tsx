@@ -6,7 +6,6 @@ import ReservaSection from "@/components/ReservaSection";
 import Footer from "@/components/Footer";
 import IntroAnimation from "@/components/IntroAnimation";
 import FloatingContactButtons from "@/components/FloatingContactButtons";
-import PromocionFlotante from "@/components/PromocionFlotante";
 import { Config } from "@/types";
 import { getConfig, getCanchas } from '@/lib/db';
 
@@ -50,7 +49,6 @@ export default async function Home() {
 
       <Footer config={config} />
       <FloatingContactButtons telefono={config.telefono} instagram={config.instagram} maps_url={config.maps_url} />
-      <PromocionFlotante />
     </div>
   );
 }

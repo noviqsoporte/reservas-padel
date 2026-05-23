@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format, addDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "react-hot-toast";
@@ -50,6 +50,8 @@ export default function ReservaWizard() {
     const [metodoPago, setMetodoPago] = useState<'efectivo' | 'online' | null>(null);
     const [promociones, setPromociones] = useState<Promocion[]>([]);
     const [promocionSeleccionada, setPromocionSeleccionada] = useState<Promocion | null>(null);
+    const [elegible, setElegible] = useState(false);
+    const elegiblePrevRef = useRef(false);
 
     const [formData, setFormData] = useState({ nombre: "", telefono: "", email: "", notas: "" });
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -116,17 +118,54 @@ export default function ReservaWizard() {
 
     useEffect(() => {
         if (!fecha) return;
-        fetch(`/api/promociones?activas=true&fecha=${fecha}`)
+        fetch(`/api/promociones?activas=true`)
             .then((r) => r.ok ? r.json() : null)
             .then((data) => { if (data?.promociones) setPromociones(data.promociones); })
             .catch(() => {});
     }, [fecha]);
+
+    // Consulta elegibilidad con debounce cuando cambia el teléfono
+    useEffect(() => {
+        const digits = formData.telefono.replace(/\D/g, '');
+        const normalized = digits.length > 10 ? digits.slice(-10) : digits;
+        if (normalized.length !== 10) {
+            setElegible(false);
+            return;
+        }
+        const timer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/promociones/elegibilidad?telefono=${normalized}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setElegible(data.elegible ?? false);
+                }
+            } catch {
+                // ignore
+            }
+        }, 600);
+        return () => clearTimeout(timer);
+    }, [formData.telefono]);
+
+    // Auto-selecciona/deselecciona quinta_gratis cuando cambia la elegibilidad
+    useEffect(() => {
+        if (elegible === elegiblePrevRef.current) return;
+        elegiblePrevRef.current = elegible;
+        if (elegible) {
+            const quintaPromo = promociones.find(p => p.tipo === 'quinta_gratis');
+            if (quintaPromo) setPromocionSeleccionada(quintaPromo);
+        } else {
+            setPromocionSeleccionada(prev => prev?.tipo === 'quinta_gratis' ? null : prev);
+        }
+    }, [elegible, promociones]);
 
     const precioOriginal = slotSeleccionado?.precio ?? canchaSeleccionada?.precio ?? 0;
     let montoDescuento = 0;
     if (promocionSeleccionada) {
         if (promocionSeleccionada.tipo === '2x1_2horas' && duracion === 120) {
             montoDescuento = Math.round(precioOriginal / 2);
+        } else if (promocionSeleccionada.tipo === 'quinta_gratis') {
+            const precioPorHora = precioOriginal / (duracion / 60);
+            montoDescuento = Math.round(Math.min(precioPorHora, precioOriginal));
         } else if (promocionSeleccionada.tipo !== '2x1_2horas') {
             montoDescuento = Math.round(precioOriginal * (promocionSeleccionada.descuento / 100));
         }
@@ -205,6 +244,8 @@ export default function ReservaWizard() {
             // Obtener profile_id si hay sesión activa
             const profileId = profile?.id ?? undefined;
 
+            const esGratis = precioFinal === 0 && promocionSeleccionada?.tipo === 'quinta_gratis';
+
             const res = await fetch("/api/reservas", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -217,7 +258,9 @@ export default function ReservaWizard() {
                     telefono: formData.telefono,
                     email: formData.email,
                     notas: formData.notas,
-                    metodo_pago: metodoPago,
+                    metodo_pago: esGratis ? 'online' : metodoPago,
+                    pago_estado: esGratis ? 'pagado' : undefined,
+                    monto_pagado: esGratis ? 0 : undefined,
                     monto: precioFinal,
                     duracion,
                     ...(profileId ? { profile_id: profileId } : {}),
@@ -252,7 +295,8 @@ export default function ReservaWizard() {
                     });
                 }
 
-                if (metodoPago === 'online' && reservaId && canchaSeleccionada && slotSeleccionado) {
+                // Pago online con monto > 0: redirigir a Stripe
+                if (metodoPago === 'online' && !esGratis && reservaId && canchaSeleccionada && slotSeleccionado) {
                     const checkoutRes = await fetch("/api/pagos/checkout", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -308,6 +352,8 @@ export default function ReservaWizard() {
         setMetodoPago(null);
         setGuardarDatos(false);
         setPromocionSeleccionada(null);
+        setElegible(false);
+        elegiblePrevRef.current = false;
     };
 
     const duracionLabel = DURACIONES.find((d) => d.minutos === duracion)?.label ?? `${duracion}min`;
@@ -669,51 +715,67 @@ export default function ReservaWizard() {
                                         </div>
 
                                         {/* Selector de promociones */}
-                                        {promociones.length > 0 && (
-                                            <div>
-                                                <label className="block text-sm font-medium text-[#0f172a] mb-2">
-                                                    Promociones disponibles
-                                                </label>
-                                                <div className="space-y-2">
-                                                    {promociones.map((promo) => {
-                                                        const isActive = promocionSeleccionada?.id === promo.id;
-                                                        return (
-                                                            <button
-                                                                key={promo.id}
-                                                                type="button"
-                                                                onClick={() => setPromocionSeleccionada(isActive ? null : promo)}
-                                                                className={`w-full text-left flex items-center justify-between border-2 rounded-xl px-4 py-3 transition-all ${
-                                                                    isActive
-                                                                        ? "border-green-500 bg-green-50"
-                                                                        : "border-[#e2e8f0] hover:border-green-400"
-                                                                }`}
-                                                            >
-                                                                <div>
-                                                                    <span className={`block text-sm font-semibold ${isActive ? "text-green-700" : "text-[#0f172a]"}`}>
-                                                                        {promo.titulo}
+                                        {(() => {
+                                            const promocionesVisibles = promociones.filter(
+                                                p => p.tipo !== 'quinta_gratis' || elegible
+                                            );
+                                            if (promocionesVisibles.length === 0) return null;
+                                            return (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-[#0f172a] mb-2">
+                                                        Promociones disponibles
+                                                    </label>
+                                                    {elegible && (
+                                                        <div className="mb-3 flex items-center gap-2 bg-green-50 border border-green-300 rounded-xl px-4 py-3 text-green-800 text-sm font-semibold">
+                                                            🎉 ¡Esta es tu 5ta reserva! Tienes 1 hora gratis.
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        {promocionesVisibles.map((promo) => {
+                                                            const isActive = promocionSeleccionada?.id === promo.id;
+                                                            const badgeLabel = promo.tipo === '2x1_2horas'
+                                                                ? '2x1 2h'
+                                                                : promo.tipo === 'quinta_gratis'
+                                                                ? '5ta GRATIS'
+                                                                : `-${promo.descuento}%`;
+                                                            return (
+                                                                <button
+                                                                    key={promo.id}
+                                                                    type="button"
+                                                                    onClick={() => setPromocionSeleccionada(isActive ? null : promo)}
+                                                                    className={`w-full text-left flex items-center justify-between border-2 rounded-xl px-4 py-3 transition-all ${
+                                                                        isActive
+                                                                            ? "border-green-500 bg-green-50"
+                                                                            : "border-[#e2e8f0] hover:border-green-400"
+                                                                    }`}
+                                                                >
+                                                                    <span className={`mr-3 shrink-0 text-sm font-bold px-2.5 py-1 rounded-full ${
+                                                                        isActive
+                                                                            ? "bg-green-500 text-white"
+                                                                            : "bg-green-100 text-green-700"
+                                                                    }`}>
+                                                                        {badgeLabel}
                                                                     </span>
-                                                                    {promo.descripcion && (
-                                                                        <span className="block text-xs text-[#64748b] mt-0.5">{promo.descripcion}</span>
-                                                                    )}
-                                                                </div>
-                                                                <span className={`ml-3 shrink-0 text-sm font-bold px-2.5 py-1 rounded-full ${
-                                                                    isActive
-                                                                        ? "bg-green-500 text-white"
-                                                                        : "bg-green-100 text-green-700"
-                                                                }`}>
-                                                                    {promo.tipo === '2x1_2horas' ? '2x1 2h' : `-${promo.descuento}%`}
-                                                                </span>
-                                                            </button>
-                                                        );
-                                                    })}
+                                                                    <div>
+                                                                        <span className={`block text-sm font-semibold ${isActive ? "text-green-700" : "text-[#0f172a]"}`}>
+                                                                            {promo.titulo}
+                                                                        </span>
+                                                                        {promo.descripcion && (
+                                                                            <span className="block text-xs text-[#64748b] mt-0.5">{promo.descripcion}</span>
+                                                                        )}
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    {promocionSeleccionada?.tipo === '2x1_2horas' && duracion !== 120 && (
+                                                        <p className="mt-2 text-xs text-amber-600 font-medium">
+                                                            Esta promoción aplica solo para reservas de 2 horas
+                                                        </p>
+                                                    )}
                                                 </div>
-                                                {promocionSeleccionada?.tipo === '2x1_2horas' && duracion !== 120 && (
-                                                    <p className="mt-2 text-xs text-amber-600 font-medium">
-                                                        Esta promoción aplica solo para reservas de 2 horas
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
+                                            );
+                                        })()}
 
                                         {/* Checkbox guardar datos — solo si hay sesión activa */}
                                         {user && (
@@ -825,6 +887,8 @@ export default function ReservaWizard() {
                                                         <span className="text-sm text-green-600 font-medium">
                                                             {promocionSeleccionada.tipo === '2x1_2horas'
                                                                 ? `2x1 ${promocionSeleccionada.titulo}`
+                                                                : promocionSeleccionada.tipo === 'quinta_gratis'
+                                                                ? `1h gratis · ${promocionSeleccionada.titulo}`
                                                                 : `-${promocionSeleccionada.descuento}% ${promocionSeleccionada.titulo}`}
                                                         </span>
                                                         <span className="text-sm font-semibold text-green-600">-${montoDescuento}</span>

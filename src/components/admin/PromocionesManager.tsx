@@ -30,9 +30,7 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
     const [descripcion, setDescripcion] = useState('');
     const [descuento, setDescuento] = useState(0);
     const [activa, setActiva] = useState(true);
-    const [fechaInicio, setFechaInicio] = useState('');
-    const [fechaFin, setFechaFin] = useState('');
-    const [tipo, setTipo] = useState<'descuento' | '2x1_2horas'>('descuento');
+    const [tipo, setTipo] = useState<'descuento' | '2x1_2horas' | 'quinta_gratis'>('descuento');
 
     // Cloudinary
     const [archivoBanner, setArchivoBanner] = useState<File | null>(null);
@@ -44,8 +42,6 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
         setDescripcion('');
         setDescuento(0);
         setActiva(true);
-        setFechaInicio('');
-        setFechaFin('');
         setTipo('descuento');
         setArchivoBanner(null);
         setPreviewBanner(null);
@@ -64,9 +60,7 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
         setDescripcion(promo.descripcion || '');
         setDescuento(promo.descuento);
         setActiva(promo.activa);
-        setFechaInicio(promo.fecha_inicio || '');
-        setFechaFin(promo.fecha_fin || '');
-        setTipo((promo.tipo as 'descuento' | '2x1_2horas') || 'descuento');
+        setTipo((promo.tipo as 'descuento' | '2x1_2horas' | 'quinta_gratis') || 'descuento');
         setModalAbierto('editar');
     };
 
@@ -129,11 +123,9 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
             const payload = {
                 titulo,
                 descripcion,
-                descuento: tipo === '2x1_2horas' ? 0 : descuento,
+                descuento: (tipo === '2x1_2horas' || tipo === 'quinta_gratis') ? 100 : descuento,
                 activa,
                 imagen_url: imagenUrlFinal || null,
-                fecha_inicio: fechaInicio || null,
-                fecha_fin: fechaFin || null,
                 tipo,
             };
 
@@ -248,7 +240,6 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
                             <tr className="border-b border-[#e2e8f0] bg-[#f8f9fa]">
                                 <th className="px-5 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">Promoción</th>
                                 <th className="px-5 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">Descuento</th>
-                                <th className="px-5 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider hidden md:table-cell">Vigencia</th>
                                 <th className="px-5 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">Estado</th>
                                 <th className="px-5 py-3 text-right text-xs font-semibold text-[#64748b] uppercase tracking-wider">Acciones</th>
                             </tr>
@@ -283,23 +274,15 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
                                             <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 font-bold text-sm px-2.5 py-1 rounded-lg">
                                                 2x1 2h
                                             </span>
+                                        ) : promo.tipo === 'quinta_gratis' ? (
+                                            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 font-bold text-sm px-2.5 py-1 rounded-lg">
+                                                5ta GRATIS
+                                            </span>
                                         ) : (
                                             <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 font-bold text-sm px-2.5 py-1 rounded-lg">
                                                 {promo.descuento}% OFF
                                             </span>
                                         )}
-                                    </td>
-                                    <td className="px-5 py-4 hidden md:table-cell">
-                                        <div className="text-xs text-[#64748b]">
-                                            {promo.fecha_inicio || promo.fecha_fin ? (
-                                                <>
-                                                    {promo.fecha_inicio && <div>Desde: {promo.fecha_inicio}</div>}
-                                                    {promo.fecha_fin && <div>Hasta: {promo.fecha_fin}</div>}
-                                                </>
-                                            ) : (
-                                                <span className="text-[#94a3b8]">Sin fecha límite</span>
-                                            )}
-                                        </div>
                                     </td>
                                     <td className="px-5 py-4">
                                         <button
@@ -375,14 +358,20 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
 
                             <div>
                                 <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Tipo de promoción</label>
-                                <select
-                                    value={tipo}
-                                    onChange={(e) => setTipo(e.target.value as 'descuento' | '2x1_2horas')}
-                                    className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
-                                >
-                                    <option value="descuento">Descuento (%)</option>
-                                    <option value="2x1_2horas">2x1 en 2 horas</option>
-                                </select>
+                                {modalAbierto === 'editar' && tipo === 'quinta_gratis' ? (
+                                    <div className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm bg-[#f8f9fa] text-[#64748b]">
+                                        5ta reserva gratis <span className="text-xs">(no modificable)</span>
+                                    </div>
+                                ) : (
+                                    <select
+                                        value={tipo}
+                                        onChange={(e) => setTipo(e.target.value as 'descuento' | '2x1_2horas' | 'quinta_gratis')}
+                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                    >
+                                        <option value="descuento">Descuento (%)</option>
+                                        <option value="2x1_2horas">2x1 en 2 horas</option>
+                                    </select>
+                                )}
                             </div>
 
                             {tipo === 'descuento' && (
@@ -402,27 +391,6 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
                                 </div>
                             </div>
                             )}
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Fecha inicio</label>
-                                    <input
-                                        type="date"
-                                        value={fechaInicio}
-                                        onChange={(e) => setFechaInicio(e.target.value)}
-                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Fecha fin</label>
-                                    <input
-                                        type="date"
-                                        value={fechaFin}
-                                        onChange={(e) => setFechaFin(e.target.value)}
-                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
-                                    />
-                                </div>
-                            </div>
 
                             <div>
                                 <div className="flex items-center justify-between border border-[#e2e8f0] rounded-xl p-4">

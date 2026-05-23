@@ -15,6 +15,9 @@ export default async function AdminDashboard() {
     const hoy = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'America/Mexico_City'
     }).format(new Date());
+    console.log('[diag] UTC now:', new Date().toISOString());
+    console.log('[diag] MX hoy:', hoy);
+    console.log('[diag] render time:', new Date().toString());
     const currentMonth = hoy.substring(0, 7);
 
     const reservasHoy = reservas.filter(r => r.fecha === hoy && r.estado !== 'Cancelada');

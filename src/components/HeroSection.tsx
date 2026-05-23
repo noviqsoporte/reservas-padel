@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { buildInstagramUrl, extractInstagramHandle } from "@/components/FloatingContactButtons";
 
 interface HeroSectionProps {
@@ -184,6 +185,12 @@ export default function HeroSection({ nombre, descripcion, horarioApertura, hora
                             >
                                 Ver canchas
                             </a>
+                            <Link
+                                href="/promociones"
+                                className="bg-transparent text-white font-semibold px-8 py-3.5 rounded-lg border border-white/50 hover:bg-white/10 transition-all duration-200 text-center"
+                            >
+                                Ver promociones
+                            </Link>
                             <a
                                 href="/clases"
                                 className="sm:hidden bg-transparent text-white font-semibold px-8 py-3.5 rounded-lg border border-white/50 hover:bg-white/10 transition-all duration-200 text-center"
@@ -290,6 +297,12 @@ export default function HeroSection({ nombre, descripcion, horarioApertura, hora
                             >
                                 Ver canchas
                             </a>
+                            <Link
+                                href="/promociones"
+                                className="bg-transparent text-[#0d3461] font-semibold px-8 py-3.5 rounded-lg border border-[#0d3461] hover:bg-[#0d3461] hover:text-white transition-all duration-200 text-center"
+                            >
+                                Ver promociones
+                            </Link>
                             <a
                                 href="#clases"
                                 className="sm:hidden bg-transparent text-[#0d3461] font-semibold px-8 py-3.5 rounded-lg border border-[#0d3461] hover:bg-[#0d3461] hover:text-white transition-all duration-200 text-center"

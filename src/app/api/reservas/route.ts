@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getReservas, crearReserva, getCancha } from '@/lib/db';
+import { getReservas, crearReserva, getCancha, getPromocionById, contarReservasCompletadas } from '@/lib/db';
 import { Reserva } from '@/types';
 import { createClient } from '@/lib/supabase/server';
 import { enviarConfirmacionReserva } from '@/lib/email';
@@ -57,9 +57,27 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'El horario ya no está disponible' }, { status: 409 });
         }
 
+        // Anti-fraude: verificar elegibilidad para quinta_gratis
+        if (promocion_id) {
+            const promo = await getPromocionById(promocion_id)
+            if (promo?.tipo === 'quinta_gratis') {
+                const completadas = await contarReservasCompletadas(telefono)
+                const elegible = completadas > 0 && completadas % 5 === 4
+                if (!elegible) {
+                    return NextResponse.json(
+                        { error: 'La promoción de quinta reserva gratis no aplica para este número de teléfono.' },
+                        { status: 400 }
+                    )
+                }
+            }
+        }
+
         const id_reserva = `RES-${Date.now()}`;
 
         const monto = body.monto || 0;
+
+        // Reserva gratis (quinta_gratis cubrió el total): crear confirmada directamente
+        const esGratis = body.pago_estado === 'pagado' && monto === 0 && metodo_pago === 'online'
 
         const nuevaReservaData: Omit<Reserva, 'id'> = {
             cancha_id,
@@ -69,20 +87,20 @@ export async function POST(request: Request) {
             nombre_cliente,
             telefono,
             email,
-            estado: metodo_pago === 'online' ? 'Pendiente' : 'Confirmada',
+            estado: (metodo_pago === 'online' && !esGratis) ? 'Pendiente' : 'Confirmada',
             notas: body.notas || '',
             id_reserva,
             ...(profile_id ? { profile_id } : {}),
             ...(metodo_pago ? { metodo_pago } : {}),
-            pago_estado: metodo_pago === 'online' ? 'pendiente' : 'pendiente',
-            ...(metodo_pago !== 'online' && monto > 0 ? { monto_pagado: monto } : {}),
+            pago_estado: esGratis ? 'pagado' : 'pendiente',
+            ...(esGratis ? { monto_pagado: 0 } : metodo_pago !== 'online' && monto > 0 ? { monto_pagado: monto } : {}),
             ...(promocion_id ? { promocion_id } : {}),
             ...(descuento_aplicado !== undefined ? { descuento_aplicado } : {}),
         };
 
         const reserva = await crearReserva(nuevaReservaData);
 
-        if (nuevaReservaData.metodo_pago !== 'online') {
+        if (nuevaReservaData.metodo_pago !== 'online' || esGratis) {
           try {
             const cancha = await getCancha(cancha_id)
             const duracionMin = body.duracion
@@ -95,7 +113,7 @@ export async function POST(request: Request) {
               hora_inicio: nuevaReservaData.hora_inicio,
               hora_fin: nuevaReservaData.hora_fin,
               duracion: duracionLabel,
-              monto: monto || cancha?.precio || 0,
+              monto: typeof monto === 'number' ? monto : (cancha?.precio ?? 0),
               metodo_pago: nuevaReservaData.metodo_pago ?? 'efectivo',
               id_reserva,
             })

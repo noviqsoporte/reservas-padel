@@ -40,11 +40,13 @@ function generarHTMLConfirmacion(datos: DatosConfirmacion): string {
   const { nombre, cancha, fecha, hora_inicio, hora_fin, duracion, monto, metodo_pago, id_reserva } = datos
   const fechaLegible = formatFechaLegible(fecha)
 
-  const montoCOP = new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 0,
-  }).format(monto)
+  const montoCOP = monto === 0
+    ? '🎉 Gratis (Promoción 5ta reserva gratis)'
+    : new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+        minimumFractionDigits: 0,
+      }).format(monto)
 
   const pagoBanner =
     metodo_pago === 'efectivo'

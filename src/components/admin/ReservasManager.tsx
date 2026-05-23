@@ -4,8 +4,9 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "react-hot-toast";
-import { Search, Pencil, X, AlertTriangle, MessageSquare, Calendar, Eye, User, CreditCard, Clock, Plus } from "lucide-react";
+import { Search, Pencil, X, AlertTriangle, MessageSquare, Calendar, Eye, User, CreditCard, Clock, Plus, ClipboardCheck } from "lucide-react";
 import { Cancha, Reserva } from "@/types";
+import { fechaHoyMexico, horaActualMexico, esReservaPasadaSinCompletar } from "@/lib/fecha";
 
 interface ReservasManagerProps {
     reservas: Reserva[];
@@ -27,6 +28,7 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
     const [reservaCancelando, setReservaCancelando] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingPago, setLoadingPago] = useState(false);
+    const [cierreLoading, setCierreLoading] = useState<Set<string>>(new Set());
 
     // Modal nueva reserva
     const [nuevaReservaOpen, setNuevaReservaOpen] = useState(false);
@@ -81,7 +83,19 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
         setBusqueda('');
     };
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = fechaHoyMexico();
+
+    const reservasPendientesCerrar = useMemo(() => {
+        const fechaHoy = fechaHoyMexico();
+        const horaActual = horaActualMexico();
+        return reservas
+            .filter(r => esReservaPasadaSinCompletar(r.fecha, r.hora_fin, r.estado, fechaHoy, horaActual))
+            .sort((a, b) => {
+                const dateCompare = a.fecha.localeCompare(b.fecha);
+                if (dateCompare !== 0) return dateCompare;
+                return a.hora_inicio.localeCompare(b.hora_inicio);
+            });
+    }, [reservas]);
 
     const HORARIOS = Array.from({ length: 31 }, (_, i) => {
         const totalMin = 7 * 60 + i * 30;
@@ -249,6 +263,26 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
         }
     };
 
+    const handleCerrarRapido = async (id: string, nuevoEstado: 'Completada' | 'No show') => {
+        setCierreLoading(prev => new Set(prev).add(id));
+        try {
+            const res = await fetch(`/api/reservas/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            if (!res.ok) throw new Error();
+            setReservas(prev => prev.map(r =>
+                r.id === id ? { ...r, estado: nuevoEstado } : r
+            ));
+            toast.success(`Marcada como ${nuevoEstado}`);
+        } catch {
+            toast.error('Error al actualizar el estado');
+        } finally {
+            setCierreLoading(prev => { const s = new Set(prev); s.delete(id); return s; });
+        }
+    };
+
     const getCanchaName = (id: string) => {
         const cancha = canchas.find(c => c.id === id);
         return cancha ? cancha.nombre : 'Eliminada';
@@ -276,6 +310,47 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
 
     return (
         <div>
+            {/* RESERVAS PENDIENTES DE CERRAR */}
+            {reservasPendientesCerrar.length > 0 && (
+                <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 shadow-sm overflow-hidden">
+                    <div className="flex items-center gap-2 px-5 py-3.5 border-b border-amber-200 bg-amber-100">
+                        <ClipboardCheck className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                        <h2 className="font-bold text-amber-800 text-sm">
+                            Reservas pendientes de cerrar ({reservasPendientesCerrar.length})
+                        </h2>
+                    </div>
+                    <div className="divide-y divide-amber-200">
+                        {reservasPendientesCerrar.map(r => (
+                            <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3.5">
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-amber-900">
+                                    <span className="font-semibold">{r.nombre_cliente}</span>
+                                    <span className="text-amber-700">{getCanchaName(r.cancha_id)}</span>
+                                    <span className="text-amber-700">{r.fecha}</span>
+                                    <span className="text-amber-700">{r.hora_inicio}–{r.hora_fin}</span>
+                                    <span className="text-amber-600">{r.telefono}</span>
+                                </div>
+                                <div className="flex gap-2 flex-shrink-0">
+                                    <button
+                                        onClick={() => handleCerrarRapido(r.id, 'Completada')}
+                                        disabled={cierreLoading.has(r.id)}
+                                        className="text-xs font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-1.5 transition-colors disabled:opacity-60"
+                                    >
+                                        ✅ Completada
+                                    </button>
+                                    <button
+                                        onClick={() => handleCerrarRapido(r.id, 'No show')}
+                                        disabled={cierreLoading.has(r.id)}
+                                        className="text-xs font-semibold bg-gray-500 hover:bg-gray-600 text-white rounded-lg px-3 py-1.5 transition-colors disabled:opacity-60"
+                                    >
+                                        👻 No show
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* SECCIÓN DE FILTROS */}
             <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 mb-6 shadow-sm">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

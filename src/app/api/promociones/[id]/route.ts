@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await req.json()
-    const { titulo, descripcion, descuento, activa, imagen_url, fecha_inicio, fecha_fin, tipo } = body
+    const { titulo, descripcion, descuento, activa, imagen_url, tipo } = body
 
     if (titulo !== undefined && !titulo.trim()) {
       return NextResponse.json({ error: 'El título no puede estar vacío' }, { status: 400 })
@@ -21,8 +21,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       ...(descuento !== undefined && { descuento }),
       ...(activa !== undefined && { activa }),
       ...(imagen_url !== undefined && { imagen_url }),
-      ...(fecha_inicio !== undefined && { fecha_inicio }),
-      ...(fecha_fin !== undefined && { fecha_fin }),
       ...(tipo !== undefined && { tipo }),
     })
 

@@ -86,9 +86,7 @@ export interface Promocion {
     descuento: number
     activa: boolean
     imagen_url?: string
-    fecha_inicio?: string
-    fecha_fin?: string
-    tipo?: string
+    tipo?: 'descuento' | '2x1_2horas' | 'quinta_gratis'
 }
 
 export interface Clase {
