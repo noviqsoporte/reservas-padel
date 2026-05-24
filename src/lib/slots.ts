@@ -88,25 +88,10 @@ export function generarSlots(
         const isOcupadoBloqueo = bloqueosDelDia.some(bloqueo => {
             if (bloqueo.cancha_id !== canchaId) return false;
 
-            const isIsoTime = bloqueo.fecha_inicio.includes('T') || bloqueo.fecha_inicio.includes(' ');
-
-            if (isIsoTime) {
-                const getTimeStr = (fechaISO: string) => {
-                    try {
-                        const d = new Date(fechaISO);
-                        if (!isNaN(d.getTime())) {
-                            return format(d, 'HH:mm');
-                        }
-                    } catch (_e) { }
-                    return fechaISO.length >= 16 ? fechaISO.substring(11, 16) : null;
-                };
-
-                const horaInicioB = getTimeStr(bloqueo.fecha_inicio);
-                const horaFinB = getTimeStr(bloqueo.fecha_fin);
-
-                if (horaInicioB && horaFinB) {
-                    return horaInicioB < slotEndStr && horaFinB > slotStartStr;
-                }
+            if (bloqueo.hora_inicio && bloqueo.hora_fin) {
+                const hi = bloqueo.hora_inicio.slice(0, 5);
+                const hf = bloqueo.hora_fin.slice(0, 5);
+                return hi < slotEndStr && hf > slotStartStr;
             }
 
             return true;

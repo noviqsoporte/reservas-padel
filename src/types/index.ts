@@ -38,6 +38,8 @@ export interface Bloqueo {
     motivo: string
     fecha_inicio: string
     fecha_fin: string
+    hora_inicio?: string | null
+    hora_fin?: string | null
 }
 
 export interface Config {

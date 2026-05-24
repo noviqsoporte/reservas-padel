@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { format, differenceInDays } from "date-fns";
-import { es } from "date-fns/locale";
+import { differenceInDays } from "date-fns";
 import { toast } from "react-hot-toast";
+import { formatearFechaLegible } from "@/lib/fecha";
 import {
     Trash2,
     CalendarOff,
@@ -28,7 +28,10 @@ export default function BloqueosManager({ bloqueos: bloqueosIniciales, canchas }
         cancha_id: '',
         motivo: '',
         fecha_inicio: '',
-        fecha_fin: ''
+        fecha_fin: '',
+        es_parcial: false,
+        hora_inicio: '',
+        hora_fin: '',
     });
 
     const canchasActivas = canchas.filter(c => c.activa);
@@ -39,7 +42,10 @@ export default function BloqueosManager({ bloqueos: bloqueosIniciales, canchas }
             cancha_id: '',
             motivo: '',
             fecha_inicio: '',
-            fecha_fin: ''
+            fecha_fin: '',
+            es_parcial: false,
+            hora_inicio: '',
+            hora_fin: '',
         });
     };
 
@@ -54,24 +60,48 @@ export default function BloqueosManager({ bloqueos: bloqueosIniciales, canchas }
     };
 
     const handleCrearBloqueo = async () => {
-        const { cancha_id, motivo, fecha_inicio, fecha_fin } = form;
+        const { cancha_id, motivo, fecha_inicio, fecha_fin, es_parcial, hora_inicio, hora_fin } = form;
 
-        if (!cancha_id || !motivo || !fecha_inicio || !fecha_fin) {
+        if (!cancha_id || !motivo || !fecha_inicio) {
             toast.error("Todos los campos son requeridos");
             return;
         }
 
-        if (fecha_fin < fecha_inicio) {
-            toast.error("La fecha de fin no puede ser anterior a la de inicio");
-            return;
+        if (es_parcial) {
+            if (!hora_inicio || !hora_fin) {
+                toast.error("Debes ingresar hora inicio y hora fin");
+                return;
+            }
+            if (hora_fin <= hora_inicio) {
+                toast.error("La hora de fin debe ser mayor a la hora de inicio");
+                return;
+            }
+        } else {
+            if (!fecha_fin) {
+                toast.error("La fecha de fin es requerida");
+                return;
+            }
+            if (fecha_fin < fecha_inicio) {
+                toast.error("La fecha de fin no puede ser anterior a la de inicio");
+                return;
+            }
         }
+
+        const payload = {
+            cancha_id,
+            motivo,
+            fecha_inicio,
+            fecha_fin: es_parcial ? fecha_inicio : fecha_fin,
+            hora_inicio: es_parcial ? hora_inicio : null,
+            hora_fin: es_parcial ? hora_fin : null,
+        };
 
         setLoading(true);
         try {
             const res = await fetch('/api/bloqueos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cancha_id, motivo, fecha_inicio, fecha_fin })
+                body: JSON.stringify(payload)
             });
 
             if (res.ok) {
@@ -116,21 +146,11 @@ export default function BloqueosManager({ bloqueos: bloqueosIniciales, canchas }
         return cancha ? cancha.nombre : 'Todas las canchas';
     };
 
-    const formatearFecha = (fecha: string) => {
-        try {
-            return format(new Date(fecha + 'T12:00:00'), "d MMM yyyy", { locale: es });
-        } catch (_e) {
-            return fecha;
-        }
-    };
-
     const calcularDuracion = (inicio: string, fin: string) => {
         try {
-            const dInicio = new Date(inicio + 'T12:00:00');
-            const dFin = new Date(fin + 'T12:00:00');
-            // differenceInDays returns difference in midnight-to-midnight periods, so add 1 to make it inclusive (e.g. 15 to 15 is 1 day)
-            const diff = differenceInDays(dFin, dInicio) + 1;
-            return diff;
+            const dInicio = new Date(inicio.slice(0, 10) + 'T12:00:00');
+            const dFin = new Date(fin.slice(0, 10) + 'T12:00:00');
+            return differenceInDays(dFin, dInicio) + 1;
         } catch (_e) {
             return 1;
         }
@@ -185,15 +205,25 @@ export default function BloqueosManager({ bloqueos: bloqueosIniciales, canchas }
 
                                 <div className="flex items-center gap-2 mt-2">
                                     <CalendarRange className="w-4 h-4 text-[#64748b]" />
-                                    <span className="text-sm text-[#64748b] capitalize">
-                                        {formatearFecha(bloqueo.fecha_inicio)} &rarr; {formatearFecha(bloqueo.fecha_fin)}
+                                    <span className="text-sm text-[#64748b]">
+                                        {bloqueo.hora_inicio && bloqueo.hora_fin
+                                            ? formatearFechaLegible(bloqueo.fecha_inicio)
+                                            : bloqueo.fecha_inicio.slice(0, 10) === bloqueo.fecha_fin.slice(0, 10)
+                                                ? formatearFechaLegible(bloqueo.fecha_inicio)
+                                                : `${formatearFechaLegible(bloqueo.fecha_inicio)} – ${formatearFechaLegible(bloqueo.fecha_fin)}`}
                                     </span>
                                 </div>
 
                                 <div className="mt-2">
-                                    <span className="bg-orange-50 text-orange-600 text-xs px-2.5 py-1 rounded-full inline-block font-medium">
-                                        {duracion} día(s) bloqueado(s)
-                                    </span>
+                                    {bloqueo.hora_inicio && bloqueo.hora_fin ? (
+                                        <span className="bg-orange-50 text-orange-600 text-xs px-2.5 py-1 rounded-full inline-block font-medium">
+                                            {bloqueo.hora_inicio.slice(0, 5)} – {bloqueo.hora_fin.slice(0, 5)}
+                                        </span>
+                                    ) : (
+                                        <span className="bg-orange-50 text-orange-600 text-xs px-2.5 py-1 rounded-full inline-block font-medium">
+                                            {duracion} día(s) bloqueado(s)
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -243,28 +273,76 @@ export default function BloqueosManager({ bloqueos: bloqueosIniciales, canchas }
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Fecha inicio</label>
-                                    <input
-                                        type="date"
-                                        min={todayStr}
-                                        value={form.fecha_inicio}
-                                        onChange={(e) => setForm({ ...form, fecha_inicio: e.target.value })}
-                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Fecha fin</label>
-                                    <input
-                                        type="date"
-                                        min={form.fecha_inicio || todayStr}
-                                        value={form.fecha_fin}
-                                        onChange={(e) => setForm({ ...form, fecha_fin: e.target.value })}
-                                        className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
-                                    />
-                                </div>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="es_parcial"
+                                    checked={form.es_parcial}
+                                    onChange={(e) => setForm({ ...form, es_parcial: e.target.checked, hora_inicio: '', hora_fin: '', fecha_fin: '' })}
+                                    className="w-4 h-4 rounded border-[#e2e8f0] accent-[#1e3a5f]"
+                                />
+                                <label htmlFor="es_parcial" className="text-sm font-medium text-[#0f172a] select-none cursor-pointer">
+                                    Bloquear solo un rango de horas
+                                </label>
                             </div>
+
+                            {form.es_parcial ? (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Fecha</label>
+                                        <input
+                                            type="date"
+                                            min={todayStr}
+                                            value={form.fecha_inicio}
+                                            onChange={(e) => setForm({ ...form, fecha_inicio: e.target.value })}
+                                            className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Hora inicio</label>
+                                            <input
+                                                type="time"
+                                                value={form.hora_inicio}
+                                                onChange={(e) => setForm({ ...form, hora_inicio: e.target.value })}
+                                                className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Hora fin</label>
+                                            <input
+                                                type="time"
+                                                value={form.hora_fin}
+                                                onChange={(e) => setForm({ ...form, hora_fin: e.target.value })}
+                                                className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Fecha inicio</label>
+                                        <input
+                                            type="date"
+                                            min={todayStr}
+                                            value={form.fecha_inicio}
+                                            onChange={(e) => setForm({ ...form, fecha_inicio: e.target.value })}
+                                            className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#0f172a] mb-1.5">Fecha fin</label>
+                                        <input
+                                            type="date"
+                                            min={form.fecha_inicio || todayStr}
+                                            value={form.fecha_fin}
+                                            onChange={(e) => setForm({ ...form, fecha_fin: e.target.value })}
+                                            className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#1e3a5f] bg-white text-[#0f172a]"
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
                                 <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />

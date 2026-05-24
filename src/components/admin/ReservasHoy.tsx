@@ -78,21 +78,21 @@ export default function ReservasHoy({ reservas, canchas }: ReservasHoyProps) {
                                             <div className="text-xs text-[#94a3b8]">{reserva.email}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {reserva.estado === 'Confirmada' && (
-                                                <span className="bg-green-50 text-green-700 border border-green-200 text-xs font-medium px-3 py-1 rounded-full">
-                                                    Confirmada
-                                                </span>
-                                            )}
-                                            {reserva.estado === 'Pendiente' && (
-                                                <span className="bg-yellow-50 text-yellow-700 border border-yellow-200 text-xs font-medium px-3 py-1 rounded-full">
-                                                    Pendiente
-                                                </span>
-                                            )}
-                                            {reserva.estado === 'Cancelada' && (
-                                                <span className="bg-red-50 text-red-600 border border-red-200 text-xs font-medium px-3 py-1 rounded-full">
-                                                    Cancelada
-                                                </span>
-                                            )}
+                                            {(() => {
+                                                const estadoColor: Record<string, string> = {
+                                                    Confirmada: 'bg-green-50 text-green-700 border-green-200',
+                                                    Pendiente: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+                                                    Cancelada: 'bg-red-50 text-red-600 border-red-200',
+                                                    Completada: 'bg-blue-50 text-blue-700 border-blue-200',
+                                                    'No show': 'bg-gray-100 text-gray-600 border-gray-300',
+                                                };
+                                                const cls = estadoColor[reserva.estado] ?? 'bg-gray-100 text-gray-500 border-gray-200';
+                                                return (
+                                                    <span className={`border text-xs font-medium px-3 py-1 rounded-full ${cls}`}>
+                                                        {reserva.estado}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                     </tr>
                                 );

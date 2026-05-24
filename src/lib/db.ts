@@ -297,6 +297,8 @@ export async function crearBloqueo(data: Omit<Bloqueo, 'id'>): Promise<Bloqueo> 
       motivo: data.motivo,
       fecha_inicio: data.fecha_inicio,
       fecha_fin: data.fecha_fin,
+      hora_inicio: data.hora_inicio || null,
+      hora_fin: data.hora_fin || null,
     })
     .select('*, canchas(nombre)')
     .single()
@@ -622,6 +624,8 @@ function mapBloqueo(row: Record<string, unknown>): Bloqueo {
     motivo: row.motivo as string,
     fecha_inicio: row.fecha_inicio as string,
     fecha_fin: row.fecha_fin as string,
+    hora_inicio: (row.hora_inicio as string) ?? null,
+    hora_fin: (row.hora_fin as string) ?? null,
   }
 }
 

@@ -16,6 +16,18 @@ export function horaActualMexico(): string {
   return `${hour}:${minute}`;
 }
 
+export function formatearFechaLegible(fecha: string): string {
+  const solo = fecha.slice(0, 10);
+  const [year, month, day] = solo.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'America/Mexico_City',
+  }).format(date);
+}
+
 export function esReservaPasadaSinCompletar(
   fecha: string,
   hora_fin: string,
