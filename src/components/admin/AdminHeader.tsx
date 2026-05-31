@@ -16,7 +16,7 @@ export default function AdminHeader() {
     const today = format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es });
 
     return (
-        <header className="bg-white border-b border-[#e2e8f0] px-6 md:px-8 py-4 flex justify-between items-center sticky top-0 z-10">
+        <header className="hidden md:flex bg-white border-b border-[#e2e8f0] px-6 md:px-8 py-4 justify-between items-center sticky top-0 z-10">
 
             {/* Izquierda */}
             <div>
