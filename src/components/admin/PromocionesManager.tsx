@@ -234,7 +234,79 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
                     </button>
                 </div>
             ) : (
-                <div className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden">
+                <>
+                {/* MOBILE: tarjetas */}
+                <div className="block md:hidden space-y-3">
+                    {promociones.map(promo => (
+                        <div key={promo.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                            {/* Fila superior: imagen + título + descripción */}
+                            <div className="flex items-center gap-3 mb-3">
+                                {promo.imagen_url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={promo.imagen_url}
+                                        alt={promo.titulo}
+                                        className="w-12 h-12 rounded-lg object-cover border border-[#e2e8f0] flex-shrink-0"
+                                    />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-lg bg-[#f1f5f9] flex items-center justify-center flex-shrink-0 border border-[#e2e8f0]">
+                                        <ImageOff className="w-5 h-5 text-[#cbd5e1]" />
+                                    </div>
+                                )}
+                                <div className="min-w-0">
+                                    <div className="font-semibold text-[#0f172a] text-sm">{promo.titulo}</div>
+                                    {promo.descripcion && (
+                                        <div className="text-sm text-gray-500 truncate">{promo.descripcion}</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Fila media: badge + toggle */}
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    {promo.tipo === '2x1_2horas' ? (
+                                        <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 font-bold text-sm px-2.5 py-1 rounded-lg">
+                                            2x1 2h
+                                        </span>
+                                    ) : promo.tipo === 'quinta_gratis' ? (
+                                        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 font-bold text-sm px-2.5 py-1 rounded-lg">
+                                            5ta GRATIS
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 font-bold text-sm px-2.5 py-1 rounded-lg">
+                                            {promo.descuento}% OFF
+                                        </span>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => handleToggleActiva(promo)}
+                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${promo.activa ? 'bg-[#1e3a5f]' : 'bg-[#cbd5e1]'}`}
+                                >
+                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${promo.activa ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                                </button>
+                            </div>
+
+                            {/* Fila inferior: botones */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => handleOpenEditar(promo)}
+                                    className="flex-1 border border-[#e2e8f0] text-[#1e3a5f] font-semibold text-sm py-2 rounded-lg hover:bg-[#f1f5f9] transition-colors"
+                                >
+                                    Editar
+                                </button>
+                                <button
+                                    onClick={() => setConfirmandoEliminar(promo.id)}
+                                    className="flex-1 border border-red-200 text-red-500 font-semibold text-sm py-2 rounded-lg hover:bg-red-50 transition-colors"
+                                >
+                                    Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* DESKTOP: tabla */}
+                <div className="hidden md:block bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-[#e2e8f0] bg-[#f8f9fa]">
@@ -313,6 +385,7 @@ export default function PromocionesManager({ promociones: promoIniciales }: Prom
                         </tbody>
                     </table>
                 </div>
+                </>
             )}
 
             {/* MODAL CREAR/EDITAR */}
