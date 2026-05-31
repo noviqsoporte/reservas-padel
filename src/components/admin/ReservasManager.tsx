@@ -443,7 +443,8 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                         <p className="text-[#64748b] mt-3 font-medium">No hay resultados para estos filtros</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <>
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="bg-[#f8f9fa] border-b border-[#e2e8f0]">
@@ -574,6 +575,99 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile cards */}
+                    <div className="block md:hidden space-y-2 p-4">
+                        {reservasFiltradas.map((reserva) => {
+                            const isHoy = reserva.fecha === todayStr;
+                            let parsedDateLabel = reserva.fecha;
+                            try {
+                                parsedDateLabel = format(new Date(reserva.fecha + 'T12:00:00'), "E d MMM", { locale: es });
+                            } catch (_e) { }
+
+                            return (
+                                <div key={reserva.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-medium text-sm text-[#0f172a] capitalize">{parsedDateLabel}</span>
+                                                {isHoy && (
+                                                    <span className="bg-blue-50 text-blue-600 border border-blue-200 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded">
+                                                        Hoy
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-xs text-gray-500 mt-0.5">{reserva.hora_inicio} – {reserva.hora_fin}</div>
+                                        </div>
+                                        <div>
+                                            {reserva.pago_estado === 'pagado' ? (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+                                                    Pagado
+                                                </span>
+                                            ) : reserva.pago_estado === 'fallido' ? (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600 border border-red-200">
+                                                    Fallido
+                                                </span>
+                                            ) : reserva.metodo_pago === 'efectivo' ? (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 border border-yellow-200">
+                                                    Efectivo
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f1f5f9] text-[#64748b] border border-[#e2e8f0]">
+                                                    Pendiente
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="mb-3">
+                                        <div className="font-medium text-sm text-[#0f172a]">{reserva.nombre_cliente}</div>
+                                        <div className="text-xs text-gray-500">{getCanchaName(reserva.cancha_id)}</div>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <select
+                                            value={reserva.estado}
+                                            onChange={(e) => handleCambiarEstado(reserva.id, e.target.value)}
+                                            className="text-xs font-medium px-2 py-1 rounded-lg border border-[#e2e8f0] bg-white text-[#0f172a] focus:outline-none focus:border-[#1e3a5f] cursor-pointer"
+                                        >
+                                            <option value="Confirmada">✓ Confirmada</option>
+                                            <option value="Pendiente">⏳ Pendiente</option>
+                                            <option value="Cancelada">✗ Cancelada</option>
+                                            <option value="Completada">✅ Completada</option>
+                                            <option value="No show">👻 No show</option>
+                                        </select>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setReservaDetalle(reserva)}
+                                                className="w-8 h-8 rounded-lg bg-[#f8f9fa] hover:bg-[#e2e8f0] text-[#64748b] flex items-center justify-center transition-colors"
+                                                title="Ver detalle"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                            {reserva.estado !== 'Cancelada' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => setReservaEditando(reserva)}
+                                                        className="w-8 h-8 rounded-lg bg-[#f8f9fa] hover:bg-[#e2e8f0] text-[#64748b] flex items-center justify-center transition-colors"
+                                                        title="Editar reserva"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setReservaCancelando(reserva.id)}
+                                                        className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors"
+                                                        title="Cancelar reserva"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    </>
                 )}
             </div>
 
