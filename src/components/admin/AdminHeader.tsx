@@ -1,19 +1,30 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 
 export default function AdminHeader() {
     const pathname = usePathname();
+    const [fechaHoy, setFechaHoy] = useState("");
+
+    useEffect(() => {
+        const fecha = new Date().toLocaleDateString("es-MX", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            timeZone: "America/Mexico_City",
+        });
+        setFechaHoy(fecha.charAt(0).toUpperCase() + fecha.slice(1));
+    }, []);
 
     let title = "Dashboard";
     if (pathname === '/admin/reservas') title = "Reservas";
     if (pathname === '/admin/canchas') title = "Canchas";
     if (pathname === '/admin/bloqueos') title = "Bloqueos";
     if (pathname === '/admin/configuracion') title = "Configuración";
-
-    const today = format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es });
+    if (pathname === '/admin/promociones') title = "Promociones";
+    if (pathname === '/admin/clases') title = "Clases";
 
     return (
         <header className="hidden md:flex bg-white border-b border-[#e2e8f0] px-6 md:px-8 py-4 justify-between items-center sticky top-0 z-10">
@@ -21,7 +32,7 @@ export default function AdminHeader() {
             {/* Izquierda */}
             <div>
                 <h1 className="text-xl font-bold text-[#0f172a] capitalize">{title}</h1>
-                <p className="text-[#64748b] text-sm mt-0.5 capitalize">{today}</p>
+                {fechaHoy && <p className="text-[#64748b] text-sm mt-0.5 capitalize">{fechaHoy}</p>}
             </div>
 
             {/* Derecha */}

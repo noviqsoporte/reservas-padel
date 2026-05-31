@@ -43,21 +43,26 @@ export function useSession() {
     useEffect(() => {
         const supabase = createClient();
 
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchProfile(session.user.id).finally(() => setLoading(false));
-            } else {
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            if (error || !session) {
+                if (error) supabase.auth.signOut();
+                setUser(null);
                 setLoading(false);
+                return;
             }
+            setUser(session.user);
+            fetchProfile(session.user.id).finally(() => setLoading(false));
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
+                setUser(null);
+                setProfile(null);
+                return;
+            }
             setUser(session?.user ?? null);
             if (event === 'SIGNED_IN' && session?.user?.id) {
                 fetchProfile(session.user.id);
-            } else if (event === 'SIGNED_OUT') {
-                setProfile(null);
             }
         });
 
