@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getReservas, crearReserva, getCancha, getPromocionById, contarReservasCompletadas } from '@/lib/db';
+import { getReservas, crearReserva, getCancha, getPromocionById, verificarElegibilidadQuintaGratis } from '@/lib/db';
 import { Reserva } from '@/types';
 import { createClient } from '@/lib/supabase/server';
 import { enviarConfirmacionReserva } from '@/lib/email';
@@ -61,8 +61,7 @@ export async function POST(request: Request) {
         if (promocion_id) {
             const promo = await getPromocionById(promocion_id)
             if (promo?.tipo === 'quinta_gratis') {
-                const completadas = await contarReservasCompletadas(telefono)
-                const elegible = completadas > 0 && completadas % 5 === 4
+                const { elegible } = await verificarElegibilidadQuintaGratis(telefono)
                 if (!elegible) {
                     return NextResponse.json(
                         { error: 'La promoción de quinta reserva gratis no aplica para este número de teléfono.' },

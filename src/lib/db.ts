@@ -267,6 +267,54 @@ export async function contarReservasCompletadas(telefono: string): Promise<numbe
   return (data || []).filter(r => normalizarTelefono(r.telefono as string) === normalizado).length
 }
 
+export async function verificarElegibilidadQuintaGratis(telefono: string): Promise<{
+  completadas: number
+  redencionesActivas: number
+  efectivas: number
+  elegible: boolean
+}> {
+  const normalizado = normalizarTelefono(telefono)
+  if (normalizado.length !== 10) {
+    return { completadas: 0, redencionesActivas: 0, efectivas: 0, elegible: false }
+  }
+
+  const { data: promos } = await serviceClient
+    .from('promociones')
+    .select('id')
+    .eq('tipo', 'quinta_gratis')
+
+  const quintaPromoIds = (promos || []).map(p => p.id as string)
+
+  const { data: completadasData, error: err1 } = await serviceClient
+    .from('reservas')
+    .select('id, telefono')
+    .eq('estado', 'Completada')
+
+  if (err1) throw err1
+  const completadas = (completadasData || []).filter(
+    r => normalizarTelefono(r.telefono as string) === normalizado
+  ).length
+
+  let redencionesActivas = 0
+  if (quintaPromoIds.length > 0) {
+    const { data: activasData, error: err2 } = await serviceClient
+      .from('reservas')
+      .select('id, telefono')
+      .in('estado', ['Confirmada', 'Pendiente'])
+      .in('promocion_id', quintaPromoIds)
+
+    if (err2) throw err2
+    redencionesActivas = (activasData || []).filter(
+      r => normalizarTelefono(r.telefono as string) === normalizado
+    ).length
+  }
+
+  const efectivas = completadas + redencionesActivas
+  const elegible = efectivas > 0 && efectivas % 5 === 4
+
+  return { completadas, redencionesActivas, efectivas, elegible }
+}
+
 export async function getPromocionById(id: string): Promise<Promocion | null> {
   const { data, error } = await serviceClient
     .from('promociones')

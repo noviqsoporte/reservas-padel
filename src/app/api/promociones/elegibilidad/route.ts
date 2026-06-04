@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { contarReservasCompletadas } from '@/lib/db'
+import { verificarElegibilidadQuintaGratis } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,9 +11,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const completadas = await contarReservasCompletadas(telefono)
-    const elegible = completadas > 0 && completadas % 5 === 4
-    return NextResponse.json({ completadas, elegible })
+    const result = await verificarElegibilidadQuintaGratis(telefono)
+    return NextResponse.json(result)
   } catch (error) {
     console.error('[GET /api/promociones/elegibilidad]', error)
     return NextResponse.json({ completadas: 0, elegible: false })
