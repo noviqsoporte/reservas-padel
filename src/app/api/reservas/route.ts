@@ -33,6 +33,7 @@ export async function POST(request: Request) {
             metodo_pago,
             promocion_id,
             descuento_aplicado,
+            es_clase,
         } = body;
 
         const supabase = await createClient();
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
             ...(metodo_pago !== 'online' && monto > 0 ? { monto_pagado: monto } : {}),
             ...(promocion_id ? { promocion_id } : {}),
             ...(descuento_aplicado !== undefined ? { descuento_aplicado } : {}),
+            es_clase: es_clase === true,
         };
 
         const reserva = await crearReserva(nuevaReservaData);

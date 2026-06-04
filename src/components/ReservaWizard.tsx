@@ -592,6 +592,20 @@ export default function ReservaWizard() {
                                                         )}
                                                     </motion.button>
                                                 );
+                                            } else if (slot.es_clase_bloqueado) {
+                                                return (
+                                                    <motion.div
+                                                        key={index}
+                                                        variants={slotItem}
+                                                        className="relative flex flex-col items-center justify-center bg-purple-50 text-purple-400 border border-purple-200 rounded-xl py-3 cursor-not-allowed"
+                                                    >
+                                                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600 whitespace-nowrap border border-purple-200">
+                                                            CLASE
+                                                        </span>
+                                                        <span className="text-base">{slot.hora_inicio}</span>
+                                                        <span className="text-xs mt-1">Reservado</span>
+                                                    </motion.div>
+                                                );
                                             } else {
                                                 return (
                                                     <motion.div

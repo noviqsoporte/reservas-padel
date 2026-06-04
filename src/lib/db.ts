@@ -185,6 +185,7 @@ export async function crearReserva(data: Omit<Reserva, 'id'>): Promise<Reserva> 
       ...(data.monto_pagado !== undefined ? { monto_pagado: data.monto_pagado } : {}),
       ...(data.promocion_id ? { promocion_id: data.promocion_id } : {}),
       ...(data.descuento_aplicado !== undefined ? { descuento_aplicado: data.descuento_aplicado } : {}),
+      es_clase: data.es_clase ?? false,
     })
     .select('*, canchas(nombre, precio)')
     .single()
@@ -216,6 +217,7 @@ export async function actualizarReserva(id: string, data: Partial<Reserva>): Pro
   if (data.email) fields.email = data.email
   if (data.estado) fields.estado = data.estado
   if (data.notas !== undefined) fields.notas = data.notas
+  if (data.es_clase !== undefined) fields.es_clase = data.es_clase
 
   const { data: row, error } = await serviceClient
     .from('reservas')
@@ -291,6 +293,7 @@ export async function verificarElegibilidadQuintaGratis(telefono: string): Promi
     .from('reservas')
     .select('id, telefono')
     .eq('estado', 'Completada')
+    .neq('es_clase', true)
     .gte('fecha', PROMO_FECHA_INICIO)
 
   if (err1) throw err1
@@ -305,6 +308,7 @@ export async function verificarElegibilidadQuintaGratis(telefono: string): Promi
       .select('id, telefono')
       .in('estado', ['Confirmada', 'Pendiente'])
       .in('promocion_id', quintaPromoIds)
+      .neq('es_clase', true)
       .gte('fecha', PROMO_FECHA_INICIO)
 
     if (err2) throw err2
@@ -666,6 +670,7 @@ function mapReserva(row: Record<string, unknown>): Reserva {
     promocion_id: (row.promocion_id as string) || undefined,
     descuento_aplicado: (row.descuento_aplicado as number) || undefined,
     created_at: row.created_at as string | undefined,
+    es_clase: (row.es_clase as boolean) ?? false,
   }
 }
 

@@ -30,6 +30,7 @@ export interface Reserva {
     promocion_id?: string
     descuento_aplicado?: number
     created_at?: string
+    es_clase?: boolean
 }
 
 export interface Bloqueo {
@@ -62,6 +63,7 @@ export interface SlotHorario {
     disponible: boolean
     es_pico?: boolean
     precio?: number
+    es_clase_bloqueado?: boolean
 }
 
 export interface Profile {

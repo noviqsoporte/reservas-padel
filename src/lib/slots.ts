@@ -67,7 +67,7 @@ export function generarSlots(
         const slotStartStr = format(currentTime, 'HH:mm');
         const slotEndStr = format(nextTime, 'HH:mm');
 
-        const isOcupadoReserva = reservasDelDia.some(reserva => {
+        const reservaBlocker = reservasDelDia.find(reserva => {
             if (reserva.cancha_id !== canchaId) return false;
             if (reserva.estado === 'Cancelada') return false;
 
@@ -85,6 +85,9 @@ export function generarSlots(
             return solapamiento;
         });
 
+        const isOcupadoReserva = !!reservaBlocker;
+        const esClaseBloqueado = isOcupadoReserva && (reservaBlocker?.es_clase === true);
+
         const isOcupadoBloqueo = bloqueosDelDia.some(bloqueo => {
             if (bloqueo.cancha_id !== canchaId) return false;
 
@@ -100,7 +103,8 @@ export function generarSlots(
         slots.push({
             hora_inicio: slotStartStr,
             hora_fin: slotEndStr,
-            disponible: !isOcupadoReserva && !isOcupadoBloqueo
+            disponible: !isOcupadoReserva && !isOcupadoBloqueo,
+            ...(esClaseBloqueado ? { es_clase_bloqueado: true } : {}),
         });
 
         currentTime = addMinutes(currentTime, 60);

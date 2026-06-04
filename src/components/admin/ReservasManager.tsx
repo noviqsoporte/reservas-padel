@@ -46,6 +46,7 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas, 
         notas: '',
         metodo_pago: 'efectivo' as 'efectivo' | 'online',
         estado: 'Confirmada' as 'Confirmada' | 'Pendiente',
+        es_clase: false,
     });
 
     // Computed state
@@ -123,6 +124,7 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas, 
             notas: '',
             metodo_pago: 'efectivo',
             estado: 'Confirmada',
+            es_clase: false,
         });
         setErrorNueva(null);
         setNuevaReservaOpen(true);
@@ -130,7 +132,7 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas, 
 
     const handleNuevaReserva = async () => {
         setErrorNueva(null);
-        const { cancha_id, fecha, hora_inicio, duracion, nombre_cliente, telefono, email, notas, metodo_pago, estado } = nuevaReservaForm;
+        const { cancha_id, fecha, hora_inicio, duracion, nombre_cliente, telefono, email, notas, metodo_pago, estado, es_clase } = nuevaReservaForm;
 
         if (!cancha_id || !fecha || !hora_inicio || !nombre_cliente || !telefono) {
             setErrorNueva('Completa los campos obligatorios: cancha, fecha, hora, nombre y teléfono.');
@@ -144,7 +146,7 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas, 
             const res = await fetch('/api/reservas', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cancha_id, fecha, hora_inicio, hora_fin, nombre_cliente, telefono, email: email || '', notas: notas || '', metodo_pago, estado }),
+                body: JSON.stringify({ cancha_id, fecha, hora_inicio, hora_fin, nombre_cliente, telefono, email: email || '', notas: notas || '', metodo_pago, estado, es_clase }),
             });
 
             if (res.ok) {
@@ -500,6 +502,11 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas, 
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-1.5 flex-wrap">
                                                     <span className="font-medium text-sm text-[#0f172a]">{reserva.nombre_cliente}</span>
+                                                    {reserva.es_clase && (
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-300">
+                                                            CLASE
+                                                        </span>
+                                                    )}
                                                     {reserva.promocion_id && quintaPromoIds.includes(reserva.promocion_id) && (
                                                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-300">
                                                             5ta GRATIS
@@ -628,6 +635,11 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas, 
                                     <div className="mb-3">
                                         <div className="flex items-center gap-1.5 flex-wrap">
                                             <span className="font-medium text-sm text-[#0f172a]">{reserva.nombre_cliente}</span>
+                                            {reserva.es_clase && (
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-300">
+                                                    CLASE
+                                                </span>
+                                            )}
                                             {reserva.promocion_id && quintaPromoIds.includes(reserva.promocion_id) && (
                                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-300">
                                                     5ta GRATIS
@@ -1030,6 +1042,28 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas, 
                                         <option value="Confirmada">Confirmada</option>
                                         <option value="Pendiente">Pendiente</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            {/* Toggle: Es clase */}
+                            <div
+                                onClick={() => setNuevaReservaForm(f => ({ ...f, es_clase: !f.es_clase }))}
+                                className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
+                                    nuevaReservaForm.es_clase
+                                        ? 'bg-purple-50 border-purple-300'
+                                        : 'bg-[#f8f9fa] border-[#e2e8f0] hover:border-purple-300'
+                                }`}
+                            >
+                                <div className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 ${nuevaReservaForm.es_clase ? 'bg-purple-600' : 'bg-[#cbd5e1]'}`}>
+                                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${nuevaReservaForm.es_clase ? 'translate-x-4.5 left-0.5' : 'left-0.5'}`} style={{ transform: nuevaReservaForm.es_clase ? 'translateX(1.125rem)' : 'translateX(0)' }} />
+                                </div>
+                                <div>
+                                    <p className={`text-sm font-semibold ${nuevaReservaForm.es_clase ? 'text-purple-700' : 'text-[#0f172a]'}`}>
+                                        Marcar como Clase
+                                    </p>
+                                    <p className="text-xs text-[#64748b] mt-0.5">
+                                        No contará para la promoción de quinta reserva gratis
+                                    </p>
                                 </div>
                             </div>
 
