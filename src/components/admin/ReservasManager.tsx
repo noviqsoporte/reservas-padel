@@ -11,9 +11,10 @@ import { fechaHoyMexico, horaActualMexico, esReservaPasadaSinCompletar } from "@
 interface ReservasManagerProps {
     reservas: Reserva[];
     canchas: Cancha[];
+    quintaPromoIds?: string[];
 }
 
-export default function ReservasManager({ reservas: reservasIniciales, canchas }: ReservasManagerProps) {
+export default function ReservasManager({ reservas: reservasIniciales, canchas, quintaPromoIds = [] }: ReservasManagerProps) {
     const [reservas, setReservas] = useState<Reserva[]>(reservasIniciales);
 
     // Filtros
@@ -497,8 +498,13 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-1.5">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
                                                     <span className="font-medium text-sm text-[#0f172a]">{reserva.nombre_cliente}</span>
+                                                    {reserva.promocion_id && quintaPromoIds.includes(reserva.promocion_id) && (
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-300">
+                                                            5ta GRATIS
+                                                        </span>
+                                                    )}
                                                     <span title={reserva.notas}>
                                                         <MessageSquare className="w-3.5 h-3.5 text-[#64748b]" />
                                                     </span>
@@ -620,7 +626,14 @@ export default function ReservasManager({ reservas: reservasIniciales, canchas }
                                         </div>
                                     </div>
                                     <div className="mb-3">
-                                        <div className="font-medium text-sm text-[#0f172a]">{reserva.nombre_cliente}</div>
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="font-medium text-sm text-[#0f172a]">{reserva.nombre_cliente}</span>
+                                            {reserva.promocion_id && quintaPromoIds.includes(reserva.promocion_id) && (
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 border border-green-300">
+                                                    5ta GRATIS
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="text-xs text-gray-500">{getCanchaName(reserva.cancha_id)}</div>
                                     </div>
                                     <div className="flex justify-between items-center">

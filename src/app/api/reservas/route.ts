@@ -75,9 +75,6 @@ export async function POST(request: Request) {
 
         const monto = body.monto || 0;
 
-        // Reserva gratis (quinta_gratis cubrió el total): crear confirmada directamente
-        const esGratis = body.pago_estado === 'pagado' && monto === 0 && metodo_pago === 'online'
-
         const nuevaReservaData: Omit<Reserva, 'id'> = {
             cancha_id,
             fecha,
@@ -86,20 +83,20 @@ export async function POST(request: Request) {
             nombre_cliente,
             telefono,
             email,
-            estado: (metodo_pago === 'online' && !esGratis) ? 'Pendiente' : 'Confirmada',
+            estado: metodo_pago === 'online' ? 'Pendiente' : 'Confirmada',
             notas: body.notas || '',
             id_reserva,
             ...(profile_id ? { profile_id } : {}),
             ...(metodo_pago ? { metodo_pago } : {}),
-            pago_estado: esGratis ? 'pagado' : 'pendiente',
-            ...(esGratis ? { monto_pagado: 0 } : metodo_pago !== 'online' && monto > 0 ? { monto_pagado: monto } : {}),
+            pago_estado: 'pendiente',
+            ...(metodo_pago !== 'online' && monto > 0 ? { monto_pagado: monto } : {}),
             ...(promocion_id ? { promocion_id } : {}),
             ...(descuento_aplicado !== undefined ? { descuento_aplicado } : {}),
         };
 
         const reserva = await crearReserva(nuevaReservaData);
 
-        if (nuevaReservaData.metodo_pago !== 'online' || esGratis) {
+        if (nuevaReservaData.metodo_pago !== 'online') {
           try {
             const cancha = await getCancha(cancha_id)
             const duracionMin = body.duracion

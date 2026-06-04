@@ -1,18 +1,22 @@
-import { Cancha, Reserva } from "@/types";
 import ReservasManager from "@/components/admin/ReservasManager";
-import { getReservas, getCanchas } from '@/lib/db';
+import { getReservas, getCanchas, getPromociones } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ReservasPage() {
-    const [reservas, canchas] = await Promise.all([
+    const [reservas, canchas, promos] = await Promise.all([
         getReservas().catch(() => []),
-        getCanchas().catch(() => [])
+        getCanchas().catch(() => []),
+        getPromociones().catch(() => []),
     ]);
+
+    const quintaPromoIds = promos
+        .filter(p => p.tipo === 'quinta_gratis')
+        .map(p => p.id);
 
     return (
         <div>
-            <ReservasManager reservas={reservas} canchas={canchas} />
+            <ReservasManager reservas={reservas} canchas={canchas} quintaPromoIds={quintaPromoIds} />
         </div>
     );
 }

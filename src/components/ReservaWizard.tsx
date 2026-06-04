@@ -51,6 +51,7 @@ export default function ReservaWizard() {
     const [promociones, setPromociones] = useState<Promocion[]>([]);
     const [promocionSeleccionada, setPromocionSeleccionada] = useState<Promocion | null>(null);
     const [elegible, setElegible] = useState(false);
+    const [quintaGratisChecked, setQuintaGratisChecked] = useState(false);
     const elegiblePrevRef = useRef(false);
 
     const [formData, setFormData] = useState({ nombre: "", telefono: "", email: "", notas: "" });
@@ -146,17 +147,15 @@ export default function ReservaWizard() {
         return () => clearTimeout(timer);
     }, [formData.telefono]);
 
-    // Auto-selecciona/deselecciona quinta_gratis cuando cambia la elegibilidad
+    // Cuando la elegibilidad cae a false, desmarcar el checkbox si estaba activo
     useEffect(() => {
         if (elegible === elegiblePrevRef.current) return;
         elegiblePrevRef.current = elegible;
-        if (elegible) {
-            const quintaPromo = promociones.find(p => p.tipo === 'quinta_gratis');
-            if (quintaPromo) setPromocionSeleccionada(quintaPromo);
-        } else {
+        if (!elegible && quintaGratisChecked) {
+            setQuintaGratisChecked(false);
             setPromocionSeleccionada(prev => prev?.tipo === 'quinta_gratis' ? null : prev);
         }
-    }, [elegible, promociones]);
+    }, [elegible, quintaGratisChecked]);
 
     const precioOriginal = slotSeleccionado?.precio ?? canchaSeleccionada?.precio ?? 0;
     let montoDescuento = 0;
@@ -244,8 +243,6 @@ export default function ReservaWizard() {
             // Obtener profile_id si hay sesión activa
             const profileId = profile?.id ?? undefined;
 
-            const esGratis = precioFinal === 0 && promocionSeleccionada?.tipo === 'quinta_gratis';
-
             const res = await fetch("/api/reservas", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -258,9 +255,7 @@ export default function ReservaWizard() {
                     telefono: formData.telefono,
                     email: formData.email,
                     notas: formData.notas,
-                    metodo_pago: esGratis ? 'online' : metodoPago,
-                    pago_estado: esGratis ? 'pagado' : undefined,
-                    monto_pagado: esGratis ? 0 : undefined,
+                    metodo_pago: metodoPago,
                     monto: precioFinal,
                     duracion,
                     ...(profileId ? { profile_id: profileId } : {}),
@@ -295,8 +290,8 @@ export default function ReservaWizard() {
                     });
                 }
 
-                // Pago online con monto > 0: redirigir a Stripe
-                if (metodoPago === 'online' && !esGratis && reservaId && canchaSeleccionada && slotSeleccionado) {
+                // Pago online: redirigir a Stripe
+                if (metodoPago === 'online' && reservaId && canchaSeleccionada && slotSeleccionado) {
                     const checkoutRes = await fetch("/api/pagos/checkout", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -353,6 +348,7 @@ export default function ReservaWizard() {
         setGuardarDatos(false);
         setPromocionSeleccionada(null);
         setElegible(false);
+        setQuintaGratisChecked(false);
         elegiblePrevRef.current = false;
     };
 
@@ -714,29 +710,53 @@ export default function ReservaWizard() {
                                             />
                                         </div>
 
-                                        {/* Selector de promociones */}
-                                        {(() => {
-                                            const promocionesVisibles = promociones.filter(
-                                                p => p.tipo !== 'quinta_gratis' || elegible
+                                        {/* Aviso quinta_gratis con checkbox manual */}
+                                        {elegible && (() => {
+                                            const quintaPromo = promociones.find(p => p.tipo === 'quinta_gratis');
+                                            if (!quintaPromo) return null;
+                                            return (
+                                                <div className="rounded-xl border border-green-300 bg-green-50 px-4 py-4">
+                                                    <p className="text-sm font-semibold text-green-800 mb-3">
+                                                        🎉 Eres acreedor(a) a 1 hora gratis por ser tu quinta reserva
+                                                    </p>
+                                                    <label className="flex items-start gap-3 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={quintaGratisChecked}
+                                                            onChange={(e) => {
+                                                                const checked = e.target.checked;
+                                                                setQuintaGratisChecked(checked);
+                                                                if (checked) {
+                                                                    setPromocionSeleccionada(quintaPromo);
+                                                                    setMetodoPago('efectivo');
+                                                                } else {
+                                                                    setPromocionSeleccionada(null);
+                                                                }
+                                                            }}
+                                                            className="mt-0.5 w-4 h-4 rounded border-green-400 accent-green-600"
+                                                        />
+                                                        <span className="text-sm text-green-800">
+                                                            Quiero aplicar mi hora gratis — el club validará la promo el día de la reserva
+                                                        </span>
+                                                    </label>
+                                                </div>
                                             );
-                                            if (promocionesVisibles.length === 0) return null;
+                                        })()}
+
+                                        {/* Selector de otras promociones (excluye quinta_gratis) */}
+                                        {(() => {
+                                            const otrasPromos = promociones.filter(p => p.tipo !== 'quinta_gratis');
+                                            if (otrasPromos.length === 0) return null;
                                             return (
                                                 <div>
                                                     <label className="block text-sm font-medium text-[#0f172a] mb-2">
                                                         Promociones disponibles
                                                     </label>
-                                                    {elegible && (
-                                                        <div className="mb-3 flex items-center gap-2 bg-green-50 border border-green-300 rounded-xl px-4 py-3 text-green-800 text-sm font-semibold">
-                                                            🎉 ¡Esta es tu 5ta reserva! Tienes 1 hora gratis.
-                                                        </div>
-                                                    )}
                                                     <div className="space-y-2">
-                                                        {promocionesVisibles.map((promo) => {
+                                                        {otrasPromos.map((promo) => {
                                                             const isActive = promocionSeleccionada?.id === promo.id;
                                                             const badgeLabel = promo.tipo === '2x1_2horas'
                                                                 ? '2x1 2h'
-                                                                : promo.tipo === 'quinta_gratis'
-                                                                ? '5ta GRATIS'
                                                                 : `-${promo.descuento}%`;
                                                             return (
                                                                 <button
@@ -813,22 +833,31 @@ export default function ReservaWizard() {
                                                 </span>
                                             </button>
 
-                                            {/* Online */}
+                                            {/* Online — deshabilitado si quinta_gratis está activa */}
                                             <button
                                                 type="button"
-                                                onClick={() => setMetodoPago('online')}
+                                                onClick={() => !quintaGratisChecked && setMetodoPago('online')}
+                                                disabled={quintaGratisChecked}
                                                 className={`text-left border-2 rounded-xl p-4 transition-all ${
-                                                    metodoPago === 'online'
+                                                    quintaGratisChecked
+                                                        ? 'border-[#e2e8f0] opacity-40 cursor-not-allowed'
+                                                        : metodoPago === 'online'
                                                         ? 'border-[#0057FF] bg-[#0057FF]/5'
                                                         : 'border-[#e2e8f0] hover:border-[#0057FF]/40'
                                                 }`}
                                             >
                                                 <span className="text-2xl block mb-2">💳</span>
                                                 <span className="block font-semibold text-[#0f172a] text-sm">Pagar en línea</span>
-                                                <span className="block text-xs text-[#64748b] mt-1">Pago seguro con tarjeta de crédito o débito</span>
-                                                <span className="inline-block mt-2 text-xs font-medium bg-[#0057FF]/10 text-[#0057FF] rounded-full px-2.5 py-0.5">
-                                                    Confirma al instante
+                                                <span className="block text-xs text-[#64748b] mt-1">
+                                                    {quintaGratisChecked
+                                                        ? 'No disponible con promo 5ta gratis'
+                                                        : 'Pago seguro con tarjeta de crédito o débito'}
                                                 </span>
+                                                {!quintaGratisChecked && (
+                                                    <span className="inline-block mt-2 text-xs font-medium bg-[#0057FF]/10 text-[#0057FF] rounded-full px-2.5 py-0.5">
+                                                        Confirma al instante
+                                                    </span>
+                                                )}
                                             </button>
                                         </div>
 

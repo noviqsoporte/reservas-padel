@@ -3,6 +3,8 @@ import { Cancha, Reserva, Bloqueo, Config, Promocion, FotoGaleria, Clase, Inscri
 import { normalizarTelefono } from './telefono'
 import { fechaHoyMexico } from './fecha'
 
+export const PROMO_FECHA_INICIO = '2026-06-01'
+
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 export async function getConfig(): Promise<Config> {
@@ -289,6 +291,7 @@ export async function verificarElegibilidadQuintaGratis(telefono: string): Promi
     .from('reservas')
     .select('id, telefono')
     .eq('estado', 'Completada')
+    .gte('fecha', PROMO_FECHA_INICIO)
 
   if (err1) throw err1
   const completadas = (completadasData || []).filter(
@@ -302,6 +305,7 @@ export async function verificarElegibilidadQuintaGratis(telefono: string): Promi
       .select('id, telefono')
       .in('estado', ['Confirmada', 'Pendiente'])
       .in('promocion_id', quintaPromoIds)
+      .gte('fecha', PROMO_FECHA_INICIO)
 
     if (err2) throw err2
     redencionesActivas = (activasData || []).filter(
